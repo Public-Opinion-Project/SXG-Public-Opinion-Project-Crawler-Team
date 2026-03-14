@@ -1,23 +1,23 @@
-# 🔥 MediaCrawler - 自媒体平台爬虫 🕷️
+# SXG-MediaCrawler
 
-## 📖 项目简介
+## 项目简介
 
 一个功能强大的**多平台自媒体数据采集工具**，支持小红书、抖音、快手、B站、微博、贴吧、知乎等主流平台的公开信息抓取。
 
-### 🔧 技术原理
+### 技术原理
 
 - **核心技术**：基于 [Playwright](https://playwright.dev/) 浏览器自动化框架登录保存登录态
 - **无需JS逆向**：利用保留登录态的浏览器上下文环境，通过 JS 表达式获取签名参数
 - **优势特点**：无需逆向复杂的加密算法，大幅降低技术门槛
 
 
-## 🚀 快速开始
+## 快速开始
 
 > 💡 **如果这个项目对您有帮助，请给个 ⭐ Star 支持一下！**
 
-## 📋 前置依赖
+## 前置依赖
 
-### 🚀 uv 安装（推荐）
+### uv 安装（推荐）
 
 在进行下一步操作之前，请确保电脑上已经安装了 uv：
 
@@ -25,14 +25,14 @@
 - **验证安装**：终端输入命令 `uv --version`，如果正常显示版本号，证明已经安装成功
 - **推荐理由**：uv 是目前最强的 Python 包管理工具，速度快、依赖解析准确
 
-### 🟢 Node.js 安装
+### Node.js 安装
 
 项目依赖 Node.js，请前往官网下载安装：
 
 - **下载地址**：https://nodejs.org/en/download/
 - **版本要求**：>= 16.0.0
 
-### 📦 Python 包安装
+### Python 包安装
 
 ```shell
 # 进入项目目录
@@ -42,14 +42,14 @@ cd MediaCrawler
 uv sync
 ```
 
-### 🌐 浏览器驱动安装
+### 浏览器驱动安装
 
 ```shell
 # 安装浏览器驱动
 uv run playwright install
 ```
 
-## 🚀 运行爬虫程序
+## 运行爬虫程序
 
 ```shell
 # 在 config/base_config.py 查看配置项目功能，写的有中文注释
@@ -67,7 +67,7 @@ uv run main.py --help
 ```
 
 <details>
-<summary>🖥️ <strong>WebUI 可视化操作界面</strong></summary>
+<summary><strong>WebUI 可视化操作界面</strong></summary>
 
 MediaCrawler 提供了基于 Web 的可视化操作界面，无需命令行也能轻松使用爬虫功能。
 
@@ -151,20 +151,21 @@ python main.py --help
 </details>
 
 
-## 💾 数据保存
+## 数据保存
 
 MediaCrawler 支持多种数据存储方式，包括 CSV、JSON、JSONL、Excel、SQLite 和 MySQL 数据库。
 
-📖 **详细使用说明请查看：[数据存储指南](docs/data_storage_guide.md)**
+**详细使用说明请查看：[数据存储指南](docs/data_storage_guide.md)**
 
 
-## 📚 其他
+## 其他
+
 - **常见问题**：[MediaCrawler 完整文档](https://nanmicoder.github.io/MediaCrawler/)
 - **爬虫入门教程**：[CrawlerTutorial 免费教程](https://github.com/NanmiCoder/CrawlerTutorial)
 - **新闻爬虫开源项目**：[NewsCrawlerCollection](https://github.com/NanmiCoder/NewsCrawlerCollection)
 
 
-## 📚 参考
+## 参考
 
 - **小红书签名仓库**：[Cloxl 的 xhs 签名仓库](https://github.com/Cloxl/xhshow)
 - **小红书客户端**：[ReaJason 的 xhs 仓库](https://github.com/ReaJason/xhs)
