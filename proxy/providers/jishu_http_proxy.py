@@ -20,7 +20,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : relakkes@gmail.com
 # @Time    : 2024/4/5 09:32
-# @Desc    : Deprecated!!!!! Shut down!!! JiSu HTTP proxy IP implementation. Please use KuaiDaili implementation (proxy/providers/kuaidl_proxy.py)
+# @Desc    : 已废弃!!!!! 关闭!!!!! JiSu HTTP代理IP实现。请使用KuaiDaili实现 (proxy/providers/kuaidl_proxy.py)
 import os
 from typing import Dict, List
 from urllib.parse import urlencode
@@ -36,20 +36,20 @@ class JiSuHttpProxy(ProxyProvider):
 
     def __init__(self, key: str, crypto: str, time_validity_period: int):
         """
-        JiSu HTTP proxy IP implementation
-        :param key: Extraction key value (obtain after registering on the official website)
-        :param crypto: Encryption signature (obtain after registering on the official website)
+        JiSu HTTP代理IP实现
+        :param key: 提取密钥值(在官网注册后获取)
+        :param crypto: 加密签名(在官网注册后获取)
         """
         self.proxy_brand_name = "JISUHTTP"
         self.api_path = "https://api.jisuhttp.com"
         self.params = {
             "key": key,
             "crypto": crypto,
-            "time": time_validity_period,  # IP usage duration, supports 3, 5, 10, 15, 30 minute validity
-            "type": "json",  # Data result is json
-            "port": "2",  # IP protocol: 1:HTTP, 2:HTTPS, 3:SOCKS5
-            "pw": "1",  # Whether to use account password authentication, 1: yes, 0: no, no means whitelist authentication; default is 0
-            "se": "1",  # Whether to show IP expiration time when returning JSON format, 1: show, 0: don't show; default is 0
+            "time": time_validity_period,  # IP使用时长,支持3,5,10,15,30分钟有效期
+            "type": "json",  # 数据结果为json
+            "port": "2",  # IP协议: 1:HTTP, 2:HTTPS, 3:SOCKS5
+            "pw": "1",  # 是否使用账号密码认证,1:是,0:否,否表示白名单认证;默认为0
+            "se": "1",  # 返回JSON格式时是否显示IP过期时间,1:显示,0:不显示;默认为0
         }
         self.ip_cache = IpCache()
 
@@ -59,12 +59,12 @@ class JiSuHttpProxy(ProxyProvider):
         :return:
         """
 
-        # Prioritize getting IP from cache
+        # 优先从缓存获取IP
         ip_cache_list = self.ip_cache.load_all_ip(proxy_brand_name=self.proxy_brand_name)
         if len(ip_cache_list) >= num:
             return ip_cache_list[:num]
 
-        # If the quantity in cache is insufficient, get from IP provider to supplement, then store in cache
+        # 如果缓存数量不足,从IP提供商获取补充,然后存入缓存
         need_get_count = num - len(ip_cache_list)
         self.params.update({"num": need_get_count})
         ip_infos = []
@@ -97,12 +97,12 @@ class JiSuHttpProxy(ProxyProvider):
 
 def new_jisu_http_proxy() -> JiSuHttpProxy:
     """
-    Construct JiSu HTTP instance
+    构造JiSu HTTP实例
     Returns:
 
     """
     return JiSuHttpProxy(
-        key=os.getenv("jisu_key", ""),  # Get JiSu HTTP IP extraction key value through environment variable
-        crypto=os.getenv("jisu_crypto", ""),  # Get JiSu HTTP IP extraction encryption signature through environment variable
-        time_validity_period=30  # 30 minutes (maximum validity)
+        key=os.getenv("jisu_key", ""),  # 通过环境变量获取JiSu HTTP IP提取密钥值
+        crypto=os.getenv("jisu_crypto", ""),  # 通过环境变量获取JiSu HTTP IP提取加密签名
+        time_validity_period=30  # 30分钟(最大有效期)
     )

@@ -16,19 +16,19 @@
 # 详细许可条款请参阅项目根目录下的LICENSE文件。
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
-# Xiaohongshu signature algorithm core functions
-# Used for generating signatures via playwright injection
+# 小红书签名算法核心函数
+# 用于通过 playwright 注入生成签名
 
 import ctypes
 import random
 from urllib.parse import quote
 
-# Custom Base64 character table
-# Standard Base64: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
-# Xiaohongshu shuffled order for obfuscation
+# 自定义 Base64 字符表
+# 标准 Base64: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
+# 小红书打乱顺序用于混淆
 BASE64_CHARS = list("ZmserbBoHQtNP+wOcza/LpngG8yJq42KWYj0DSfdikx3VT16IlUAFM97hECvuRX5")
 
-# CRC32 lookup table
+# CRC32 查找表
 CRC32_TABLE = [
     0, 1996959894, 3993919788, 2567524794, 124634137, 1886057615, 3915621685,
     2657392035, 249268274, 2044508324, 3772115230, 2547177864, 162941995,
@@ -77,14 +77,14 @@ CRC32_TABLE = [
 
 
 def _right_shift_unsigned(num: int, bit: int = 0) -> int:
-    """Python implementation of JavaScript unsigned right shift (>>>)"""
+    """Python 实现的 JavaScript 无符号右移（>>>）"""
     val = ctypes.c_uint32(num).value >> bit
     MAX32INT = 4294967295
     return (val + (MAX32INT + 1)) % (2 * (MAX32INT + 1)) - MAX32INT - 1
 
 
 def mrc(e: str) -> int:
-    """CRC32 variant, used for x9 field in x-s-common"""
+    """CRC32 变体，用于 x-s-common 中的 x9 字段"""
     o = -1
     for n in range(min(57, len(e))):
         o = CRC32_TABLE[(o & 255) ^ ord(e[n])] ^ _right_shift_unsigned(o, 8)
@@ -92,7 +92,7 @@ def mrc(e: str) -> int:
 
 
 def _triplet_to_base64(e: int) -> str:
-    """Convert 24-bit integer to 4 Base64 characters"""
+    """将 24 位整数转换为 4 个 Base64 字符"""
     return (
         BASE64_CHARS[(e >> 18) & 63]
         + BASE64_CHARS[(e >> 12) & 63]
@@ -102,7 +102,7 @@ def _triplet_to_base64(e: int) -> str:
 
 
 def _encode_chunk(data: list, start: int, end: int) -> str:
-    """Encode data chunk"""
+    """编码数据块"""
     result = []
     for i in range(start, end, 3):
         c = ((data[i] << 16) & 0xFF0000) + ((data[i + 1] << 8) & 0xFF00) + (data[i + 2] & 0xFF)
@@ -111,7 +111,7 @@ def _encode_chunk(data: list, start: int, end: int) -> str:
 
 
 def encode_utf8(s: str) -> list:
-    """Encode string to UTF-8 byte list"""
+    """将字符串编码为 UTF-8 字节列表"""
     encoded = quote(s, safe="~()*!.'")
     result = []
     i = 0
@@ -126,7 +126,7 @@ def encode_utf8(s: str) -> list:
 
 
 def b64_encode(data: list) -> str:
-    """Custom Base64 encoding"""
+    """自定义 Base64 编码"""
     length = len(data)
     remainder = length % 3
     chunks = []
@@ -148,5 +148,5 @@ def b64_encode(data: list) -> str:
 
 
 def get_trace_id() -> str:
-    """Generate trace id for link tracing"""
+    """生成用于链路追踪的 trace id"""
     return "".join(random.choice("abcdef0123456789") for _ in range(16))

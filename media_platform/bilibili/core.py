@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2025 relakkes@gmail.com
 #
-# This file is part of MediaCrawler project.
-# Repository: https://github.com/NanmiCoder/MediaCrawler/blob/main/media_platform/bilibili/core.py
-# GitHub: https://github.com/NanmiCoder
-# Licensed under NON-COMMERCIAL LEARNING LICENSE 1.1
+# 本文件是 MediaCrawler 项目的一部分。
+# 仓库地址：https://github.com/NanmiCoder/MediaCrawler/blob/main/media_platform/bilibili/core.py
+# GitHub：https://github.com/NanmiCoder
+# 基于 NON-COMMERCIAL LEARNING LICENSE 1.1 许可证授权
 #
-
 # 声明：本代码仅供学习和研究目的使用。使用者应遵守以下原则：
 # 1. 不得用于任何商业用途。
 # 2. 使用时应遵守目标平台的使用条款和robots.txt规则。
@@ -17,14 +16,15 @@
 # 详细许可条款请参阅项目根目录下的LICENSE文件。
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
-# -*- coding: utf-8 -*-
-# @Author  : relakkes@gmail.com
-# @Time    : 2023/12/2 18:44
-# @Desc    : Bilibili Crawler
+"""
+哔哩哔哩爬虫核心模块
+
+提供哔哩哔哩平台的爬虫实现
+包括搜索模式、详情模式、创作者模式等多种爬取方式
+"""
 
 import asyncio
 import os
-# import random  # Removed as we now use fixed config.CRAWLER_MAX_SLEEP_SEC intervals
 from asyncio import Task
 from typing import Dict, List, Optional, Tuple, Union
 from datetime import datetime, timedelta
@@ -55,28 +55,46 @@ from .login import BilibiliLogin
 
 
 class BilibiliCrawler(AbstractCrawler):
+    """
+    哔哩哔哩爬虫主类
+
+    继承自 AbstractCrawler
+    实现对哔哩哔哩平台的各种爬取功能
+    """
     context_page: Page
     bili_client: BilibiliClient
     browser_context: BrowserContext
     cdp_manager: Optional[CDPBrowserManager]
 
     def __init__(self):
+        """初始化爬虫"""
         self.index_url = "https://www.bilibili.com"
         self.user_agent = utils.get_user_agent()
         self.cdp_manager = None
-        self.ip_proxy_pool = None  # Proxy IP pool for automatic proxy refresh
+        self.ip_proxy_pool = None  # 自动刷新代理的代理 IP 池
 
     async def start(self):
+        """
+        爬虫入口方法
+
+        负责：
+        1. 初始化代理池（如果启用）
+        2. 启动浏览器
+        3. 执行登录
+        4. 根据配置的爬虫类型执行相应的爬取任务
+        """
         playwright_proxy_format, httpx_proxy_format = None, None
         if config.ENABLE_IP_PROXY:
+            # 创建代理池
             self.ip_proxy_pool = await create_ip_pool(config.IP_PROXY_POOL_COUNT, enable_validate_ip=True)
             ip_proxy_info: IpInfoModel = await self.ip_proxy_pool.get_proxy()
             playwright_proxy_format, httpx_proxy_format = utils.format_proxy_info(ip_proxy_info)
 
         async with async_playwright() as playwright:
-            # Choose launch mode based on configuration
+            # 根据配置选择启动模式
             if config.ENABLE_CDP_MODE:
                 utils.logger.info("[BilibiliCrawler] Launching browser using CDP mode")
+                # 使用 CDP 模式启动浏览器
                 self.browser_context = await self.launch_browser_with_cdp(
                     playwright,
                     playwright_proxy_format,
@@ -85,21 +103,23 @@ class BilibiliCrawler(AbstractCrawler):
                 )
             else:
                 utils.logger.info("[BilibiliCrawler] Launching browser using standard mode")
-                # Launch a browser context.
+                # 使用标准模式启动浏览器
                 chromium = playwright.chromium
                 self.browser_context = await self.launch_browser(chromium, None, self.user_agent, headless=config.HEADLESS)
-                # stealth.min.js is a js script to prevent the website from detecting the crawler.
+                # stealth.min.js 是一个防止网站检测到爬虫的 JS 脚本
                 await self.browser_context.add_init_script(path="libs/stealth.min.js")
 
             self.context_page = await self.browser_context.new_page()
             await self.context_page.goto(self.index_url)
 
-            # Create a client to interact with the xiaohongshu website.
+            # 创建与小红书网站交互的客户端
             self.bili_client = await self.create_bilibili_client(httpx_proxy_format)
+            # 检查登录状态
             if not await self.bili_client.pong():
+                # 执行登录
                 login_obj = BilibiliLogin(
                     login_type=config.LOGIN_TYPE,
-                    login_phone="",  # your phone number
+                    login_phone="",  # 你的手机号码
                     browser_context=self.browser_context,
                     context_page=self.context_page,
                     cookie_str=config.COOKIES,
@@ -107,14 +127,17 @@ class BilibiliCrawler(AbstractCrawler):
                 await login_obj.begin()
                 await self.bili_client.update_cookies(browser_context=self.browser_context)
 
+            # 设置爬虫类型
             crawler_type_var.set(config.CRAWLER_TYPE)
+            # 根据爬虫类型执行不同的任务
             if config.CRAWLER_TYPE == "search":
                 await self.search()
             elif config.CRAWLER_TYPE == "detail":
-                # Get the information and comments of the specified post
+                # 获取指定帖子的信息和评论
                 await self.get_specified_videos(config.BILI_SPECIFIED_ID_LIST)
             elif config.CRAWLER_TYPE == "creator":
                 if config.CREATOR_MODE:
+                    # 创作者模式：获取每个创作者的视频
                     for creator_url in config.BILI_CREATOR_ID_LIST:
                         try:
                             creator_info = parse_creator_info_from_url(creator_url)
@@ -124,6 +147,7 @@ class BilibiliCrawler(AbstractCrawler):
                             utils.logger.error(f"[BilibiliCrawler.start] Failed to parse creator URL: {e}")
                             continue
                 else:
+                    # 获取所有创作者的详细信息
                     await self.get_all_creator_details(config.BILI_CREATOR_ID_LIST)
             else:
                 pass
@@ -131,9 +155,13 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def search(self):
         """
-        search bilibili video
+        搜索方法入口
+
+        根据配置的搜索模式执行搜索：
+        - normal: 普通搜索模式
+        - all_in_time_range: 时间范围内搜索全部
+        - daily_limit_in_time_range: 时间范围内每日限制搜索
         """
-        # Search for video and retrieve their comment information.
         if config.BILI_SEARCH_MODE == "normal":
             await self.search_by_keywords()
         elif config.BILI_SEARCH_MODE == "all_in_time_range":
@@ -149,43 +177,45 @@ class BilibiliCrawler(AbstractCrawler):
         end: str = config.END_DAY,
     ) -> Tuple[str, str]:
         """
-        Get bilibili publish start timestamp pubtime_begin_s and publish end timestamp pubtime_end_s
-        ---
-        :param start: Publish date start time, YYYY-MM-DD
-        :param end: Publish date end time, YYYY-MM-DD
+        获取哔哩哔哩发布开始和结束时间戳
 
-        Note
-        ---
-        - Search time range is from start to end, including both start and end
-        - To search content from the same day, to include search content from that day, pubtime_end_s should be pubtime_begin_s plus one day minus one second, i.e., the last second of start day
-            - For example, searching only 2024-01-05 content, pubtime_begin_s = 1704384000, pubtime_end_s = 1704470399
-              Converted to readable datetime objects: pubtime_begin_s = datetime.datetime(2024, 1, 5, 0, 0), pubtime_end_s = datetime.datetime(2024, 1, 5, 23, 59, 59)
-        - To search content from start to end, to include search content from end day, pubtime_end_s should be pubtime_end_s plus one day minus one second, i.e., the last second of end day
-            - For example, searching 2024-01-05 - 2024-01-06 content, pubtime_begin_s = 1704384000, pubtime_end_s = 1704556799
-              Converted to readable datetime objects: pubtime_begin_s = datetime.datetime(2024, 1, 5, 0, 0), pubtime_end_s = datetime.datetime(2024, 1, 6, 23, 59, 59)
+        参数:
+            start: 发布日期开始时间，格式 YYYY-MM-DD
+            end: 发布日期结束时间，格式 YYYY-MM-DD
+
+        返回:
+            元组 (pubtime_begin_s, pubtime_end_s)
+
+        注意:
+            - 搜索时间范围从 start 到 end，包括开始和结束
+            - 如果要在同一天搜索内容，要包含那天的内容，pubtime_end_s 应该是 pubtime_begin_s 加上一天减一秒，即开始那天的最后一秒
+              例如：只搜索 2024-01-05 的内容，pubtime_begin_s = 1704384000, pubtime_end_s = 1704470399
+              转换为可读的时间对象：pubtime_begin_s = datetime.datetime(2024, 1, 5, 0, 0), pubtime_end_s = datetime.datetime(2024, 1, 5, 23, 59, 59)
+            - 如果要在 start 到 end 范围内搜索内容，要包含结束那天的内容，pubtime_end_s 应该是 pubtime_end_s 加上一天减一秒，即结束那天的最后一秒
+              例如：搜索 2024-01-05 - 2024-01-06 的内容，pubtime_begin_s = 1704384000, pubtime_end_s = 1704556799
+              转换为可读的时间对象：pubtime_begin_s = datetime.datetime(2024, 1, 5, 0, 0), pubtime_end_s = datetime.datetime(2024, 1, 6, 23, 59, 59)
         """
-        # Convert start and end to datetime objects
+        # 将开始和结束转换为 datetime 对象
         start_day: datetime = datetime.strptime(start, "%Y-%m-%d")
         end_day: datetime = datetime.strptime(end, "%Y-%m-%d")
         if start_day > end_day:
             raise ValueError("Wrong time range, please check your start and end argument, to ensure that the start cannot exceed end")
-        elif start_day == end_day:  # Searching content from the same day
-            end_day = (start_day + timedelta(days=1) - timedelta(seconds=1))  # Set end_day to start_day + 1 day - 1 second
-        else:  # Searching from start to end
-            end_day = (end_day + timedelta(days=1) - timedelta(seconds=1))  # Set end_day to end_day + 1 day - 1 second
-        # Convert back to timestamps
+        elif start_day == end_day:  # 搜索同一天的内容
+            end_day = (start_day + timedelta(days=1) - timedelta(seconds=1))  # 设置 end_day 为 start_day + 1 天 - 1 秒
+        else:  # 从开始到结束搜索
+            end_day = (end_day + timedelta(days=1) - timedelta(seconds=1))  # 设置 end_day 为 end_day + 1 天 - 1 秒
+        # 转换回时间戳
         return str(int(start_day.timestamp())), str(int(end_day.timestamp()))
 
     async def search_by_keywords(self):
         """
-        search bilibili video with keywords in normal mode
-        :return:
+        使用关键词搜索哔哩哔哩视频（普通模式）
         """
-        utils.logger.info("[BilibiliCrawler.search_by_keywords] Begin search bilibli keywords")
-        bili_limit_count = 20  # bilibili limit page fixed value
+        utils.logger.info("[BilibiliCrawler.search_by_keywords] Begin search bilibili keywords")
+        bili_limit_count = 20  # 哔哩哔哩每页固定值
         if config.CRAWLER_MAX_NOTES_COUNT < bili_limit_count:
             config.CRAWLER_MAX_NOTES_COUNT = bili_limit_count
-        start_page = config.START_PAGE  # start page number
+        start_page = config.START_PAGE  # 起始页码
         for keyword in config.KEYWORDS.split(","):
             source_keyword_var.set(keyword)
             utils.logger.info(f"[BilibiliCrawler.search_by_keywords] Current search keyword: {keyword}")
@@ -203,8 +233,8 @@ class BilibiliCrawler(AbstractCrawler):
                     page=page,
                     page_size=bili_limit_count,
                     order=SearchOrderType.DEFAULT,
-                    pubtime_begin_s=0,  # Publish date start timestamp
-                    pubtime_end_s=0,  # Publish date end timestamp
+                    pubtime_begin_s=0,  # 发布开始时间戳
+                    pubtime_end_s=0,  # 发布结束时间戳
                 )
                 video_list: List[Dict] = videos_res.get("result")
 
@@ -227,7 +257,7 @@ class BilibiliCrawler(AbstractCrawler):
                         await self.get_bilibili_video(video_item, semaphore)
                 page += 1
 
-                # Sleep after page navigation
+                # 页面导航后休眠
                 await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
                 utils.logger.info(f"[BilibiliCrawler.search_by_keywords] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after page {page-1}")
 
@@ -235,8 +265,10 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def search_by_keywords_in_time_range(self, daily_limit: bool):
         """
-        Search bilibili video with keywords in a given time range.
-        :param daily_limit: if True, strictly limit the number of notes per day and total.
+        在指定时间范围内使用关键词搜索视频
+
+        参数:
+            daily_limit: 如果为 True，严格限制每天和总体的数量
         """
         utils.logger.info(f"[BilibiliCrawler.search_by_keywords_in_time_range] Begin search with daily_limit={daily_limit}")
         bili_limit_count = 20
@@ -308,7 +340,7 @@ class BilibiliCrawler(AbstractCrawler):
 
                         page += 1
 
-                        # Sleep after page navigation
+                        # 页面导航后休眠
                         await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
                         utils.logger.info(f"[BilibiliCrawler.search_by_keywords_in_time_range] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after page {page-1}")
 
@@ -320,9 +352,10 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def batch_get_video_comments(self, video_id_list: List[str]):
         """
-        batch get video comments
-        :param video_id_list:
-        :return:
+        批量获取视频评论
+
+        参数:
+            video_id_list: 视频 ID 列表
         """
         if not config.ENABLE_GET_COMMENTS:
             utils.logger.info(f"[BilibiliCrawler.batch_get_note_comments] Crawling comment mode is not enabled")
@@ -338,10 +371,11 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_comments(self, video_id: str, semaphore: asyncio.Semaphore):
         """
-        get comment for video id
-        :param video_id:
-        :param semaphore:
-        :return:
+        获取视频评论
+
+        参数:
+            video_id: 视频 ID
+            semaphore: 信号量
         """
         async with semaphore:
             try:
@@ -360,13 +394,15 @@ class BilibiliCrawler(AbstractCrawler):
                 utils.logger.error(f"[BilibiliCrawler.get_comments] get video_id: {video_id} comment error: {ex}")
             except Exception as e:
                 utils.logger.error(f"[BilibiliCrawler.get_comments] may be been blocked, err:{e}")
-                # Propagate the exception to be caught by the main loop
+                # 向上抛出异常，由主循环捕获
                 raise
 
     async def get_creator_videos(self, creator_id: int):
         """
-        get videos for a creator
-        :return:
+        获取创作者的视频列表
+
+        参数:
+            creator_id: 创作者 ID
         """
         ps = 30
         pn = 1
@@ -382,9 +418,10 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_specified_videos(self, video_url_list: List[str]):
         """
-        get specified videos info from URLs or BV IDs
-        :param video_url_list: List of video URLs or BV IDs
-        :return:
+        从 URL 或 BV ID 列表获取指定视频的信息
+
+        参数:
+            video_url_list: 视频 URL 或 BV ID 列表
         """
         utils.logger.info("[BilibiliCrawler.get_specified_videos] Parsing video URLs...")
         bvids_list = []
@@ -414,17 +451,21 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_video_info_task(self, aid: int, bvid: str, semaphore: asyncio.Semaphore) -> Optional[Dict]:
         """
-        Get video detail task
-        :param aid:
-        :param bvid:
-        :param semaphore:
-        :return:
+        获取视频详情的任务
+
+        参数:
+            aid: 视频 av 号
+            bvid: 视频 bv 号
+            semaphore: 信号量
+
+        返回:
+            视频详情数据
         """
         async with semaphore:
             try:
                 result = await self.bili_client.get_video_info(aid=aid, bvid=bvid)
 
-                # Sleep after fetching video details
+                # 获取视频详情后休眠
                 await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
                 utils.logger.info(f"[BilibiliCrawler.get_video_info_task] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after fetching video details {bvid or aid}")
 
@@ -438,11 +479,15 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_video_play_url_task(self, aid: int, cid: int, semaphore: asyncio.Semaphore) -> Union[Dict, None]:
         """
-        Get video play url
-        :param aid:
-        :param cid:
-        :param semaphore:
-        :return:
+        获取视频播放地址
+
+        参数:
+            aid: 视频 av 号
+            cid: 视频 cid
+            semaphore: 信号量
+
+        返回:
+            视频播放地址数据
         """
         async with semaphore:
             try:
@@ -457,9 +502,13 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def create_bilibili_client(self, httpx_proxy: Optional[str]) -> BilibiliClient:
         """
-        create bilibili client
-        :param httpx_proxy: httpx proxy
-        :return: bilibili client
+        创建哔哩哔哩客户端
+
+        参数:
+            httpx_proxy: httpx 代理
+
+        返回:
+            BilibiliClient 实例
         """
         utils.logger.info("[BilibiliCrawler.create_bilibili_client] Begin create bilibili API client ...")
         cookie_str, cookie_dict = utils.convert_cookies(await self.browser_context.cookies())
@@ -474,7 +523,7 @@ class BilibiliCrawler(AbstractCrawler):
             },
             playwright_page=self.context_page,
             cookie_dict=cookie_dict,
-            proxy_ip_pool=self.ip_proxy_pool,  # Pass proxy pool for automatic refresh
+            proxy_ip_pool=self.ip_proxy_pool,  # 传递代理池用于自动刷新
         )
         return bilibili_client_obj
 
@@ -486,33 +535,36 @@ class BilibiliCrawler(AbstractCrawler):
         headless: bool = True,
     ) -> BrowserContext:
         """
-        launch browser and create browser context
-        :param chromium: chromium browser
-        :param playwright_proxy: playwright proxy
-        :param user_agent: user agent
-        :param headless: headless mode
-        :return: browser context
+        启动浏览器并创建浏览器上下文
+
+        参数:
+            chromium: Chromium 浏览器
+            playwright_proxy: Playwright 代理配置
+            user_agent: 用户代理
+            headless: 无头模式
+
+        返回:
+            浏览器上下文
         """
         utils.logger.info("[BilibiliCrawler.launch_browser] Begin create browser context ...")
         if config.SAVE_LOGIN_STATE:
-            # feat issue #14
-            # we will save login state to avoid login every time
-            user_data_dir = os.path.join(os.getcwd(), "browser_data", config.USER_DATA_DIR % config.PLATFORM)  # type: ignore
+            # 功能问题 #14
+            # 我们会保存登录状态以避免每次都登录
+            user_data_dir = os.path.join(os.getcwd(), "browser_data", config.USER_DATA_DIR % config.PLATFORM)
             browser_context = await chromium.launch_persistent_context(
                 user_data_dir=user_data_dir,
                 accept_downloads=True,
                 headless=headless,
-                proxy=playwright_proxy,  # type: ignore
+                proxy=playwright_proxy,
                 viewport={
                     "width": 1920,
                     "height": 1080
                 },
                 user_agent=user_agent,
-                channel="chrome",  # Use system's stable Chrome version
+                channel="chrome",  # 使用系统稳定的 Chrome 版本
             )
             return browser_context
         else:
-            # type: ignore
             browser = await chromium.launch(headless=headless, proxy=playwright_proxy, channel="chrome")
             browser_context = await browser.new_context(viewport={"width": 1920, "height": 1080}, user_agent=user_agent)
             return browser_context
@@ -525,7 +577,7 @@ class BilibiliCrawler(AbstractCrawler):
         headless: bool = True,
     ) -> BrowserContext:
         """
-        Launch browser using CDP mode
+        使用 CDP 模式启动浏览器
         """
         try:
             self.cdp_manager = CDPBrowserManager()
@@ -536,7 +588,7 @@ class BilibiliCrawler(AbstractCrawler):
                 headless=headless,
             )
 
-            # Display browser information
+            # 显示浏览器信息
             browser_info = await self.cdp_manager.get_browser_info()
             utils.logger.info(f"[BilibiliCrawler] CDP browser info: {browser_info}")
 
@@ -544,14 +596,16 @@ class BilibiliCrawler(AbstractCrawler):
 
         except Exception as e:
             utils.logger.error(f"[BilibiliCrawler] CDP mode launch failed, fallback to standard mode: {e}")
-            # Fallback to standard mode
+            # 回退到标准模式
             chromium = playwright.chromium
             return await self.launch_browser(chromium, playwright_proxy, user_agent, headless)
 
     async def close(self):
-        """Close browser context"""
+        """
+        关闭浏览器上下文
+        """
         try:
-            # If using CDP mode, special handling is required
+            # 如果使用 CDP 模式，需要特殊处理
             if self.cdp_manager:
                 await self.cdp_manager.cleanup()
                 self.cdp_manager = None
@@ -565,10 +619,11 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_bilibili_video(self, video_item: Dict, semaphore: asyncio.Semaphore):
         """
-        download bilibili video
-        :param video_item:
-        :param semaphore:
-        :return:
+        下载哔哩哔哩视频
+
+        参数:
+            video_item: 视频数据
+            semaphore: 信号量
         """
         if not config.ENABLE_GET_MEIDAS:
             utils.logger.info(f"[BilibiliCrawler.get_bilibili_video] Crawling image mode is not enabled")
@@ -602,7 +657,10 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_all_creator_details(self, creator_url_list: List[str]):
         """
-        creator_url_list: get details for creator from creator URL list
+        从创作者 URL 列表获取创作者的详细信息
+
+        参数:
+            creator_url_list: 创作者 URL 列表
         """
         utils.logger.info(f"[BilibiliCrawler.get_all_creator_details] Crawling the details of creators")
         utils.logger.info(f"[BilibiliCrawler.get_all_creator_details] Parsing creator URLs...")
@@ -632,10 +690,11 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_creator_details(self, creator_id: int, semaphore: asyncio.Semaphore):
         """
-        get details for creator id
-        :param creator_id:
-        :param semaphore:
-        :return:
+        获取创作者的详细信息
+
+        参数:
+            creator_id: 创作者 ID
+            semaphore: 信号量
         """
         async with semaphore:
             creator_unhandled_info: Dict = await self.bili_client.get_creator_info(creator_id)
@@ -651,10 +710,11 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_fans(self, creator_info: Dict, semaphore: asyncio.Semaphore):
         """
-        get fans for creator id
-        :param creator_info:
-        :param semaphore:
-        :return:
+        获取创作者的粉丝
+
+        参数:
+            creator_info: 创作者信息
+            semaphore: 信号量
         """
         creator_id = creator_info["id"]
         async with semaphore:
@@ -674,10 +734,11 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_followings(self, creator_info: Dict, semaphore: asyncio.Semaphore):
         """
-        get followings for creator id
-        :param creator_info:
-        :param semaphore:
-        :return:
+        获取创作者的的关注
+
+        参数:
+            creator_info: 创作者信息
+            semaphore: 信号量
         """
         creator_id = creator_info["id"]
         async with semaphore:
@@ -697,10 +758,11 @@ class BilibiliCrawler(AbstractCrawler):
 
     async def get_dynamics(self, creator_info: Dict, semaphore: asyncio.Semaphore):
         """
-        get dynamics for creator id
-        :param creator_info:
-        :param semaphore:
-        :return:
+        获取创作者的动态
+
+        参数:
+            creator_info: 创作者信息
+            semaphore: 信号量
         """
         creator_id = creator_info["id"]
         async with semaphore:

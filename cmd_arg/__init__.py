@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2025 relakkes@gmail.com
 #
-# This file is part of MediaCrawler project.
-# Repository: https://github.com/NanmiCoder/MediaCrawler/blob/main/cmd_arg/__init__.py
-# GitHub: https://github.com/NanmiCoder
-# Licensed under NON-COMMERCIAL LEARNING LICENSE 1.1
+# 本文件是 MediaCrawler 项目的一部分。
+# 仓库地址：https://github.com/NanmiCoder/MediaCrawler/blob/main/cmd_arg/__init__.py
+# GitHub：https://github.com/NanmiCoder
+# 基于 NON-COMMERCIAL LEARNING LICENSE 1.1 许可证授权
 #
 
 # 声明：本代码仅供学习和研究目的使用。使用者应遵守以下原则：

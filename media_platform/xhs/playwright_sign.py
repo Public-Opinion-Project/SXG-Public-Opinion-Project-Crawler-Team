@@ -16,8 +16,7 @@
 # 详细许可条款请参阅项目根目录下的LICENSE文件。
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
-# Generate Xiaohongshu signature by calling window.mnsv2 via Playwright injection
-
+# 通过 Playwright 注入调用 window.mnsv2 生成小红书签名
 import hashlib
 import json
 import time
@@ -30,18 +29,18 @@ from .xhs_sign import b64_encode, encode_utf8, get_trace_id, mrc
 
 
 def _build_sign_string(uri: str, data: Optional[Union[Dict, str]] = None, method: str = "POST") -> str:
-    """Build string to be signed
+    """构建待签名字符串
 
-    Args:
-        uri: API path
-        data: Request data
-        method: Request method (GET or POST)
+    参数:
+        uri: API 路径
+        data: 请求数据
+        method: 请求方法（GET 或 POST）
 
-    Returns:
-        String to be signed
+    返回:
+        待签名字符串
     """
     if method.upper() == "POST":
-        # POST request uses JSON format
+        # POST 请求使用 JSON 格式
         c = uri
         if data is not None:
             if isinstance(data, dict):
@@ -50,7 +49,7 @@ def _build_sign_string(uri: str, data: Optional[Union[Dict, str]] = None, method
                 c += data
         return c
     else:
-        # GET request uses query string format
+        # GET 请求使用查询字符串格式
         if not data or (isinstance(data, dict) and len(data) == 0):
             return uri
 
@@ -64,8 +63,8 @@ def _build_sign_string(uri: str, data: Optional[Union[Dict, str]] = None, method
                     value_str = str(value)
                 else:
                     value_str = ""
-                # Use URL encoding (safe parameter preserves certain characters from encoding)
-                # Note: httpx will encode commas, equals signs, etc., we need to handle the same way
+                # 使用 URL 编码（safe 参数保留某些字符不被编码）
+                # 注意：httpx 会对逗号、等号等进行编码，我们需要以相同方式处理
                 value_str = quote(value_str, safe='')
                 params.append(f"{key}={value_str}")
             return f"{uri}?{'&'.join(params)}"
@@ -75,12 +74,12 @@ def _build_sign_string(uri: str, data: Optional[Union[Dict, str]] = None, method
 
 
 def _md5_hex(s: str) -> str:
-    """Calculate MD5 hash value"""
+    """计算 MD5 哈希值"""
     return hashlib.md5(s.encode("utf-8")).hexdigest()
 
 
 def _build_xs_payload(x3_value: str, data_type: str = "object") -> str:
-    """Build x-s signature"""
+    """构建 x-s 签名"""
     s = {
         "x0": "4.2.1",
         "x1": "xhs-pc-web",
@@ -92,7 +91,7 @@ def _build_xs_payload(x3_value: str, data_type: str = "object") -> str:
 
 
 def _build_xs_common(a1: str, b1: str, x_s: str, x_t: str) -> str:
-    """Build x-s-common request header"""
+    """构建 x-s-common 请求头"""
     payload = {
         "s0": 3,
         "s1": "",
@@ -113,7 +112,7 @@ def _build_xs_common(a1: str, b1: str, x_s: str, x_t: str) -> str:
 
 
 async def get_b1_from_localstorage(page: Page) -> str:
-    """Get b1 value from localStorage"""
+    """从 localStorage 获取 b1 值"""
     try:
         local_storage = await page.evaluate("() => window.localStorage")
         return local_storage.get("b1", "")
@@ -123,15 +122,15 @@ async def get_b1_from_localstorage(page: Page) -> str:
 
 async def call_mnsv2(page: Page, sign_str: str, md5_str: str) -> str:
     """
-    Call window.mnsv2 function via playwright
+    通过 playwright 调用 window.mnsv2 函数
 
-    Args:
-        page: playwright Page object
-        sign_str: String to be signed (uri + JSON.stringify(data))
-        md5_str: MD5 hash value of sign_str
+    参数:
+        page: playwright Page 对象
+        sign_str: 待签名字符串（uri + JSON.stringify(data)）
+        md5_str: sign_str 的 MD5 哈希值
 
-    Returns:
-        Signature string returned by mnsv2
+    返回:
+        mnsv2 返回的签名字符串
     """
     sign_str_escaped = sign_str.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n")
     md5_str_escaped = md5_str.replace("\\", "\\\\").replace("'", "\\'")
@@ -150,16 +149,16 @@ async def sign_xs_with_playwright(
     method: str = "POST",
 ) -> str:
     """
-    Generate x-s signature via playwright injection
+    通过 playwright 注入生成 x-s 签名
 
-    Args:
-        page: playwright Page object (must have Xiaohongshu page open)
-        uri: API path, e.g., "/api/sns/web/v1/search/notes"
-        data: Request data (GET params or POST payload)
-        method: Request method (GET or POST)
+    参数:
+        page: playwright Page 对象（必须已打开小红书页面）
+        uri: API 路径，例如 "/api/sns/web/v1/search/notes"
+        data: 请求数据（GET 参数或 POST 负载）
+        method: 请求方法（GET 或 POST）
 
-    Returns:
-        x-s signature string
+    返回:
+        x-s 签名字符串
     """
     sign_str = _build_sign_string(uri, data, method)
     md5_str = _md5_hex(sign_str)
@@ -176,17 +175,17 @@ async def sign_with_playwright(
     method: str = "POST",
 ) -> Dict[str, Any]:
     """
-    Generate complete signature request headers via playwright
+    通过 playwright 生成完整的签名请求头
 
-    Args:
-        page: playwright Page object (must have Xiaohongshu page open)
-        uri: API path
-        data: Request data
-        a1: a1 value from cookie
-        method: Request method (GET or POST)
+    参数:
+        page: playwright Page 对象（必须已打开小红书页面）
+        uri: API 路径
+        data: 请求数据
+        a1: cookie 中的 a1 值
+        method: 请求方法（GET 或 POST）
 
-    Returns:
-        Dictionary containing x-s, x-t, x-s-common, x-b3-traceid
+    返回:
+        包含 x-s、x-t、x-s-common、x-b3-traceid 的字典
     """
     b1 = await get_b1_from_localstorage(page)
     x_s = await sign_xs_with_playwright(page, uri, data, method)
@@ -208,23 +207,23 @@ async def pre_headers_with_playwright(
     payload: Optional[Dict] = None,
 ) -> Dict[str, str]:
     """
-    Generate request header signature using playwright injection method
-    Can directly replace _pre_headers method in client.py
+    使用 playwright 注入方法生成请求头签名
+    可直接替换 client.py 中的 _pre_headers 方法
 
-    Args:
-        page: playwright Page object
-        url: Request URL
-        cookie_dict: Cookie dictionary
-        params: GET request parameters
-        payload: POST request parameters
+    参数:
+        page: playwright Page 对象
+        url: 请求 URL
+        cookie_dict: Cookie 字典
+        params: GET 请求参数
+        payload: POST 请求参数
 
-    Returns:
-        Signed request header dictionary
+    返回:
+        签名后的请求头字典
     """
     a1_value = cookie_dict.get("a1", "")
     uri = urlparse(url).path
 
-    # Determine request data and method
+    # 确定请求数据和方法
     if params is not None:
         data = params
         method = "GET"

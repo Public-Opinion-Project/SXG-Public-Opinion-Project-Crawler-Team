@@ -18,12 +18,26 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 
+"""
+抖音异常模块
+
+定义抖音爬虫相关的自定义异常类
+"""
+
 from httpx import RequestError
 
 
 class DataFetchError(RequestError):
-    """something error when fetch"""
+    """
+    数据获取错误
+    
+    当从抖音 API 获取数据失败时抛出
+    """
 
 
 class IPBlockError(RequestError):
-    """fetch so fast that the server block us ip"""
+    """
+    IP 被封禁错误
+    
+    当请求过快导致服务器封禁 IP 时抛出
+    """

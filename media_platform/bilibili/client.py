@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2025 relakkes@gmail.com
 #
-# This file is part of MediaCrawler project.
-# Repository: https://github.com/NanmiCoder/MediaCrawler/blob/main/media_platform/bilibili/client.py
-# GitHub: https://github.com/NanmiCoder
-# Licensed under NON-COMMERCIAL LEARNING LICENSE 1.1
+# 本文件是 MediaCrawler 项目的一部分。
+# 仓库地址：https://github.com/NanmiCoder/MediaCrawler/blob/main/media_platform/bilibili/client.py
+# GitHub：https://github.com/NanmiCoder
+# 基于 NON-COMMERCIAL LEARNING LICENSE 1.1 许可证授权
 #
-
 # 声明：本代码仅供学习和研究目的使用。使用者应遵守以下原则：
 # 1. 不得用于任何商业用途。
 # 2. 使用时应遵守目标平台的使用条款和robots.txt规则。
@@ -17,10 +16,13 @@
 # 详细许可条款请参阅项目根目录下的LICENSE文件。
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
-# -*- coding: utf-8 -*-
-# @Author  : relakkes@gmail.com
-# @Time    : 2023/12/2 18:44
-# @Desc    : bilibili request client
+"""
+哔哩哔哩 API 客户端模块
+
+提供与哔哩哔哩 API 交互的所有方法
+包括视频搜索、视频详情、评论、UP主信息、粉丝、关注、动态等
+"""
+
 import asyncio
 import json
 import random
@@ -44,10 +46,17 @@ from .help import BilibiliSign
 
 
 class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
+    """
+    哔哩哔哩 API 客户端类
+
+    继承自 AbstractApiClient 和 ProxyRefreshMixin
+    提供对哔哩哔哩 API 的所有 HTTP 请求功能
+    支持代理 IP 自动刷新
+    """
 
     def __init__(
         self,
-        timeout=60,  # For media crawling, Bilibili long videos need a longer timeout
+        timeout=60,  # 媒体爬取需要更长超时，哔哩哔哩长视频需要更长的超时时间
         proxy=None,
         *,
         headers: Dict[str, str],
@@ -55,18 +64,45 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         cookie_dict: Dict[str, str],
         proxy_ip_pool: Optional["ProxyIpPool"] = None,
     ):
+        """
+        初始化哔哩哔哩客户端
+
+        参数:
+            timeout: 请求超时时间（秒），默认60秒
+            proxy: 代理服务器地址
+            headers: HTTP 请求头
+            playwright_page: Playwright 页面对象，用于获取 localStorage
+            cookie_dict: Cookie 字典
+            proxy_ip_pool: 代理 IP 池对象
+        """
         self.proxy = proxy
         self.timeout = timeout
         self.headers = headers
         self._host = "https://api.bilibili.com"
         self.playwright_page = playwright_page
         self.cookie_dict = cookie_dict
-        # Initialize proxy pool (from ProxyRefreshMixin)
+        # 初始化代理池（来自 ProxyRefreshMixin）
         self.init_proxy_pool(proxy_ip_pool)
 
     async def request(self, method, url, **kwargs) -> Any:
-        # Check if proxy has expired before each request
-        await self._refresh_proxy_if_expired()
+        """
+        发送 HTTP 请求的通用方法
+
+        每次请求前检查代理是否过期
+
+        参数:
+            method: HTTP 方法（GET、POST 等）
+            url: 请求 URL
+            **kwargs: 其他传递给 httpx 的参数
+
+        返回:
+            API 响应数据
+
+        异常:
+            DataFetchError: 当请求失败或返回错误时抛出
+        """
+        # 每次请求前检查代理是否过期
+        await self._refresh_proxy_expired()
 
         async with httpx.AsyncClient(proxy=self.proxy) as client:
             response = await client.request(method, url, timeout=self.timeout, **kwargs)
@@ -82,11 +118,16 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
 
     async def pre_request_data(self, req_data: Dict) -> Dict:
         """
-        Send request to sign request parameters
-        Need to get wbi_img_urls parameter from localStorage, value as follows:
+        发送签名请求参数
+
+        需要从 localStorage 获取 wbi_img_urls 参数，值格式如下：
         https://i0.hdslb.com/bfs/wbi/7cd084941338484aae1ad9425b84077c.png-https://i0.hdslb.com/bfs/wbi/4932caff0ff746eab6f01bf08b70ac45.png
-        :param req_data:
-        :return:
+
+        参数:
+            req_data: 原始请求参数
+
+        返回:
+            签名后的请求参数
         """
         if not req_data:
             return {}
@@ -95,8 +136,10 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
 
     async def get_wbi_keys(self) -> Tuple[str, str]:
         """
-        Get the latest img_key and sub_key
-        :return:
+        获取最新的 img_key 和 sub_key
+
+        返回:
+            元组 (img_key, sub_key)
         """
         local_storage = await self.playwright_page.evaluate("() => window.localStorage")
         wbi_img_urls = local_storage.get("wbi_img_urls", "")
@@ -116,6 +159,17 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         return img_key, sub_key
 
     async def get(self, uri: str, params=None, enable_params_sign: bool = True) -> Dict:
+        """
+        发送 GET 请求
+
+        参数:
+            uri: API 路径
+            params: 查询参数
+            enable_params_sign: 是否启用参数签名，默认启用
+
+        返回:
+            API 响应数据
+        """
         final_uri = uri
         if enable_params_sign:
             params = await self.pre_request_data(params)
@@ -125,12 +179,27 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         return await self.request(method="GET", url=f"{self._host}{final_uri}", headers=self.headers)
 
     async def post(self, uri: str, data: dict) -> Dict:
+        """
+        发送 POST 请求
+
+        参数:
+            uri: API 路径
+            data: POST 数据
+
+        返回:
+            API 响应数据
+        """
         data = await self.pre_request_data(data)
         json_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
         return await self.request(method="POST", url=f"{self._host}{uri}", data=json_str, headers=self.headers)
 
     async def pong(self) -> bool:
-        """get a note to check if login state is ok"""
+        """
+        检查登录状态是否有效
+
+        返回:
+            bool: 登录状态有效返回 True，否则返回 False
+        """
         utils.logger.info("[BilibiliClient.pong] Begin pong bilibili...")
         ping_flag = False
         try:
@@ -145,6 +214,14 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         return ping_flag
 
     async def update_cookies(self, browser_context: BrowserContext):
+        """
+        更新客户端的 Cookie
+
+        从浏览器上下文获取最新的 Cookie
+
+        参数:
+            browser_context: 浏览器上下文
+        """
         cookie_str, cookie_dict = utils.convert_cookies(await browser_context.cookies())
         self.headers["Cookie"] = cookie_str
         self.cookie_dict = cookie_dict
@@ -159,14 +236,18 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         pubtime_end_s: int = 0,
     ) -> Dict:
         """
-        KuaiShou web search api
-        :param keyword: Search keyword
-        :param page: Page number for pagination
-        :param page_size: Number of items per page
-        :param order: Sort order for search results, default is comprehensive sorting
-        :param pubtime_begin_s: Publish time start timestamp
-        :param pubtime_end_s: Publish time end timestamp
-        :return:
+        搜索视频
+
+        参数:
+            keyword: 搜索关键词
+            page: 页码
+            page_size: 每页数量
+            order: 排序方式
+            pubtime_begin_s: 发布时间开始时间戳
+            pubtime_end_s: 发布时间结束时间戳
+
+        返回:
+            搜索结果数据
         """
         uri = "/x/web-interface/wbi/search/type"
         post_data = {
@@ -182,10 +263,19 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
 
     async def get_video_info(self, aid: Union[int, None] = None, bvid: Union[str, None] = None) -> Dict:
         """
-        Bilibli web video detail api, choose one parameter between aid and bvid
-        :param aid: Video aid
-        :param bvid: Video bvid
-        :return:
+        获取视频详情
+
+        aid 和 bvid 二选一提供
+
+        参数:
+            aid: 视频 av 号
+            bvid: 视频 bv 号
+
+        返回:
+            视频详情数据
+
+        异常:
+            ValueError: 当未提供任何参数时抛出
         """
         if not aid and not bvid:
             raise ValueError("Please provide at least one parameter: aid or bvid")
@@ -200,10 +290,17 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
 
     async def get_video_play_url(self, aid: int, cid: int) -> Dict:
         """
-        Bilibli web video play url api
-        :param aid: Video aid
-        :param cid: cid
-        :return:
+        获取视频播放地址
+
+        参数:
+            aid: 视频 av 号
+            cid: 视频 cid
+
+        返回:
+            视频播放地址数据
+
+        异常:
+            ValueError: 当 aid 或 cid 无效时抛出
         """
         if not aid or not cid or aid <= 0 or cid <= 0:
             raise ValueError("aid and cid must exist")
@@ -221,7 +318,16 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         return await self.get(uri, params, enable_params_sign=True)
 
     async def get_video_media(self, url: str) -> Union[bytes, None]:
-        # Follow CDN 302 redirects and treat any 2xx as success (some endpoints return 206)
+        """
+        获取视频媒体文件内容
+
+        参数:
+            url: 视频媒体 URL
+
+        返回:
+            视频字节数据，获取失败返回 None
+        """
+        # 跟随 CDN 302 重定向，将任何 2xx 视为成功（某些接口返回 206）
         async with httpx.AsyncClient(proxy=self.proxy, follow_redirects=True) as client:
             try:
                 response = await client.request("GET", url, timeout=self.timeout, headers=self.headers)
@@ -232,8 +338,8 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
                     f"[BilibiliClient.get_video_media] Unexpected status {response.status_code} for {url}"
                 )
                 return None
-            except httpx.HTTPError as exc:  # some wrong when call httpx.request method, such as connection error, client error, server error or response status code is not 2xx
-                utils.logger.error(f"[BilibiliClient.get_video_media] {exc.__class__.__name__} for {exc.request.url} - {exc}")  # Keep original exception type name for developer debugging
+            except httpx.HTTPError as exc:
+                utils.logger.error(f"[BilibiliClient.get_video_media] {exc.__class__.__name__} for {exc.request.url} - {exc}")
                 return None
 
     async def get_video_comments(
@@ -242,11 +348,16 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         order_mode: CommentOrderType = CommentOrderType.DEFAULT,
         next: int = 0,
     ) -> Dict:
-        """get video comments
-        :param video_id: Video ID
-        :param order_mode: Sort order
-        :param next: Comment page selection
-        :return:
+        """
+        获取视频评论
+
+        参数:
+            video_id: 视频 ID
+            order_mode: 排序方式
+            next: 评论分页参数
+
+        返回:
+            评论数据
         """
         uri = "/x/v2/reply/wbi/main"
         post_data = {"oid": video_id, "mode": order_mode.value, "type": 1, "ps": 20, "next": next}
@@ -261,14 +372,17 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         max_count: int = 10,
     ):
         """
-        get video all comments include sub comments
-        :param video_id:
-        :param crawl_interval:
-        :param is_fetch_sub_comments:
-        :param callback:
-        max_count: Maximum number of comments to crawl per note
+        获取视频的所有评论（包括子评论）
 
-        :return:
+        参数:
+            video_id: 视频 ID
+            crawl_interval: 爬取间隔（秒）
+            is_fetch_sub_comments: 是否获取二级评论
+            callback: 回调函数
+            max_count: 每个视频最多爬取的评论数
+
+        返回:
+            评论列表
         """
         result = []
         is_end = False
@@ -299,7 +413,7 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
 
             comment_list: List[Dict] = comments_res.get("replies", [])
 
-            # Check if is_end and next exist
+            # 检查 is_end 和 next 是否存在
             if "is_end" not in cursor_info or "next" not in cursor_info:
                 utils.logger.warning(f"[BilibiliClient.get_video_all_comments] 'is_end' or 'next' not in cursor for video_id: {video_id}. Assuming end of comments.")
                 is_end = True
@@ -317,7 +431,7 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
                         {await self.get_video_all_level_two_comments(video_id, comment_id, CommentOrderType.DEFAULT, 10, crawl_interval, callback)}
             if len(result) + len(comment_list) > max_count:
                 comment_list = comment_list[:max_count - len(result)]
-            if callback:  # If there is a callback function, execute it
+            if callback:
                 await callback(video_id, comment_list)
             await asyncio.sleep(crawl_interval)
             if not is_fetch_sub_comments:
@@ -335,21 +449,25 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         callback: Optional[Callable] = None,
     ) -> Dict:
         """
-        get video all level two comments for a level one comment
-        :param video_id: Video ID
-        :param level_one_comment_id: Level one comment ID
-        :param order_mode:
-        :param ps: Number of comments per page
-        :param crawl_interval:
-        :param callback:
-        :return:
+        获取视频的所有二级评论
+
+        参数:
+            video_id: 视频 ID
+            level_one_comment_id: 一级评论 ID
+            order_mode: 排序方式
+            ps: 每页数量
+            crawl_interval: 爬取间隔
+            callback: 回调函数
+
+        返回:
+            二级评论数据
         """
 
         pn = 1
         while True:
             result = await self.get_video_level_two_comments(video_id, level_one_comment_id, pn, ps, order_mode)
             comment_list: List[Dict] = result.get("replies", [])
-            if callback:  # If there is a callback function, execute it
+            if callback:
                 await callback(video_id, comment_list)
             await asyncio.sleep(crawl_interval)
             if (int(result["page"]["count"]) <= pn * ps):
@@ -365,12 +483,18 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         ps: int,
         order_mode: CommentOrderType,
     ) -> Dict:
-        """get video level two comments
-        :param video_id: Video ID
-        :param level_one_comment_id: Level one comment ID
-        :param order_mode: Sort order
+        """
+        获取视频的二级评论
 
-        :return:
+        参数:
+            video_id: 视频 ID
+            level_one_comment_id: 一级评论 ID
+            pn: 页码
+            ps: 每页数量
+            order_mode: 排序方式
+
+        返回:
+            二级评论数据
         """
         uri = "/x/v2/reply/reply"
         post_data = {
@@ -385,13 +509,17 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         return result
 
     async def get_creator_videos(self, creator_id: str, pn: int, ps: int = 30, order_mode: SearchOrderType = SearchOrderType.LAST_PUBLISH) -> Dict:
-        """get all videos for a creator
-        :param creator_id: Creator ID
-        :param pn: Page number
-        :param ps: Number of videos per page
-        :param order_mode: Sort order
+        """
+        获取创作者的所有视频
 
-        :return:
+        参数:
+            creator_id: 创作者 ID
+            pn: 页码
+            ps: 每页数量
+            order_mode: 排序方式
+
+        返回:
+            创作者视频列表数据
         """
         uri = "/x/space/wbi/arc/search"
         post_data = {
@@ -404,8 +532,13 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
 
     async def get_creator_info(self, creator_id: int) -> Dict:
         """
-        get creator info
-        :param creator_id: Creator ID
+        获取创作者信息
+
+        参数:
+            creator_id: 创作者 ID
+
+        返回:
+            创作者信息数据
         """
         uri = "/x/space/wbi/acc/info"
         post_data = {
@@ -420,11 +553,15 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         ps: int = 24,
     ) -> Dict:
         """
-        get creator fans
-        :param creator_id: Creator ID
-        :param pn: Start page number
-        :param ps: Number of items per page
-        :return:
+        获取创作者粉丝列表
+
+        参数:
+            creator_id: 创作者 ID
+            pn: 页码
+            ps: 每页数量
+
+        返回:
+            粉丝列表数据
         """
         uri = "/x/relation/fans"
         post_data = {
@@ -442,11 +579,15 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         ps: int = 24,
     ) -> Dict:
         """
-        get creator followings
-        :param creator_id: Creator ID
-        :param pn: Start page number
-        :param ps: Number of items per page
-        :return:
+        获取创作者关注列表
+
+        参数:
+            creator_id: 创作者 ID
+            pn: 页码
+            ps: 每页数量
+
+        返回:
+            关注列表数据
         """
         uri = "/x/relation/followings"
         post_data = {
@@ -459,10 +600,14 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
 
     async def get_creator_dynamics(self, creator_id: int, offset: str = ""):
         """
-        get creator comments
-        :param creator_id: Creator ID
-        :param offset: Parameter required for sending request
-        :return:
+        获取创作者动态
+
+        参数:
+            creator_id: 创作者 ID
+            offset: 分页参数
+
+        返回:
+            动态数据
         """
         uri = "/x/polymer/web-dynamic/v1/feed/space"
         post_data = {
@@ -481,13 +626,16 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         max_count: int = 100,
     ) -> List:
         """
-        get creator all fans
-        :param creator_info:
-        :param crawl_interval:
-        :param callback:
-        :param max_count: Maximum number of fans to crawl for a creator
+        获取创作者的所有粉丝
 
-        :return: List of creator fans
+        参数:
+            creator_info: 创作者信息
+            crawl_interval: 爬取间隔
+            callback: 回调函数
+            max_count: 最大爬取粉丝数
+
+        返回:
+            粉丝列表
         """
         creator_id = creator_info["id"]
         result = []
@@ -499,7 +647,7 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
             pn += 1
             if len(result) + len(fans_list) > max_count:
                 fans_list = fans_list[:max_count - len(result)]
-            if callback:  # If there is a callback function, execute it
+            if callback:
                 await callback(creator_info, fans_list)
             await asyncio.sleep(crawl_interval)
             if not fans_list:
@@ -515,13 +663,16 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         max_count: int = 100,
     ) -> List:
         """
-        get creator all followings
-        :param creator_info:
-        :param crawl_interval:
-        :param callback:
-        :param max_count: Maximum number of followings to crawl for a creator
+        获取创作者的所有关注
 
-        :return: List of creator followings
+        参数:
+            creator_info: 创作者信息
+            crawl_interval: 爬取间隔
+            callback: 回调函数
+            max_count: 最大爬取关注数
+
+        返回:
+            关注列表
         """
         creator_id = creator_info["id"]
         result = []
@@ -533,7 +684,7 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
             pn += 1
             if len(result) + len(followings_list) > max_count:
                 followings_list = followings_list[:max_count - len(result)]
-            if callback:  # If there is a callback function, execute it
+            if callback:
                 await callback(creator_info, followings_list)
             await asyncio.sleep(crawl_interval)
             if not followings_list:
@@ -549,13 +700,16 @@ class BilibiliClient(AbstractApiClient, ProxyRefreshMixin):
         max_count: int = 20,
     ) -> List:
         """
-        get creator all followings
-        :param creator_info:
-        :param crawl_interval:
-        :param callback:
-        :param max_count: Maximum number of dynamics to crawl for a creator
+        获取创作者的所有动态
 
-        :return: List of creator dynamics
+        参数:
+            creator_info: 创作者信息
+            crawl_interval: 爬取间隔
+            callback: 回调函数
+            max_count: 最大爬取动态数
+
+        返回:
+            动态列表
         """
         creator_id = creator_info["id"]
         result = []

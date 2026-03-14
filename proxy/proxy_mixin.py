@@ -21,7 +21,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : relakkes@gmail.com
 # @Time    : 2025/11/25
-# @Desc    : Auto-refresh proxy Mixin class for use by various platform clients
+# @Desc    : 供各平台客户端使用的自动刷新代理Mixin类
 
 from typing import TYPE_CHECKING, Optional
 
@@ -33,31 +33,31 @@ if TYPE_CHECKING:
 
 class ProxyRefreshMixin:
     """
-    Auto-refresh proxy Mixin class
+    自动刷新代理Mixin类
 
-    Usage:
-    1. Let client class inherit this Mixin
-    2. Call init_proxy_pool(proxy_ip_pool) in client's __init__
-    3. Call await _refresh_proxy_if_expired() before each request method call
+    使用方法:
+    1. 让客户端类继承此Mixin
+    2. 在客户端的__init__中调用init_proxy_pool(proxy_ip_pool)
+    3. 在每次请求方法调用前调用await _refresh_proxy_if_expired()
 
-    Requirements:
-    - client class must have self.proxy attribute to store current proxy URL
+    要求:
+    - 客户端类必须有self.proxy属性来存储当前代理URL
     """
 
     _proxy_ip_pool: Optional["ProxyIpPool"] = None
 
     def init_proxy_pool(self, proxy_ip_pool: Optional["ProxyIpPool"]) -> None:
         """
-        Initialize proxy pool reference
+        初始化代理池引用
         Args:
-            proxy_ip_pool: Proxy IP pool instance
+            proxy_ip_pool: 代理IP池实例
         """
         self._proxy_ip_pool = proxy_ip_pool
 
     async def _refresh_proxy_if_expired(self) -> None:
         """
-        Check if proxy has expired, automatically refresh if so
-        Call this method before each request to ensure proxy is valid
+        检查代理是否过期,如果过期则自动刷新
+        在每次请求前调用此方法以确保代理有效
         """
         if self._proxy_ip_pool is None:
             return

@@ -22,12 +22,12 @@ from httpx import RequestError
 
 
 class DataFetchError(RequestError):
-    """something error when fetch"""
+    """获取数据时发生错误"""
 
 
 class IPBlockError(RequestError):
-    """fetch so fast that the server block us ip"""
+    """获取速度过快导致服务器封禁我们的 IP"""
 
 
 class NoteNotFoundError(RequestError):
-    """Note does not exist or is abnormal"""
+    """笔记不存在或异常"""

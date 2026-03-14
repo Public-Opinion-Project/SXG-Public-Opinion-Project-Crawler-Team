@@ -21,7 +21,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : relakkes@gmail.com
 # @Time    : 2024/4/5 09:43
-# @Desc    : KuaiDaili HTTP implementation, official documentation: https://www.kuaidaili.com/?ref=ldwkjqipvz6c
+# @Desc    : KuaiDaili HTTP实现, 官方文档: https://www.kuaidaili.com/?ref=ldwkjqipvz6c
 import os
 import re
 from typing import Dict, List
@@ -33,19 +33,19 @@ from proxy import IpCache, IpInfoModel, ProxyProvider
 from proxy.types import ProviderNameEnum
 from tools import utils
 
-# KuaiDaili IP proxy expiration time is moved forward by 5 seconds to avoid critical time usage failure
+# KuaiDaili IP代理过期时间提前5秒,以避免关键时间使用失败
 DELTA_EXPIRED_SECOND = 5
 
 
 class KuaidailiProxyModel(BaseModel):
     ip: str = Field("ip")
     port: int = Field("port")
-    expire_ts: int = Field("Expiration time, in seconds, how many seconds until expiration")
+    expire_ts: int = Field("过期时间,单位秒,距离过期还有多少秒")
 
 
 def parse_kuaidaili_proxy(proxy_info: str) -> KuaidailiProxyModel:
     """
-    Parse KuaiDaili IP information
+    解析KuaiDaili IP信息
     Args:
         proxy_info:
 
@@ -54,12 +54,12 @@ def parse_kuaidaili_proxy(proxy_info: str) -> KuaidailiProxyModel:
     """
     proxies: List[str] = proxy_info.split(":")
     if len(proxies) != 2:
-        raise Exception("not invalid kuaidaili proxy info")
+        raise Exception("无效的kuaidaili代理信息")
 
     pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,5}),(\d+)'
     match = re.search(pattern, proxy_info)
     if not match.groups():
-        raise Exception("not match kuaidaili proxy info")
+        raise Exception("不匹配kuaidaili代理信息")
 
     return KuaidailiProxyModel(
         ip=match.groups()[0],
@@ -94,7 +94,7 @@ class KuaiDaiLiProxy(ProxyProvider):
 
     async def get_proxy(self, num: int) -> List[IpInfoModel]:
         """
-        KuaiDaili implementation
+        KuaiDaili实现
         Args:
             num:
 
@@ -103,12 +103,12 @@ class KuaiDaiLiProxy(ProxyProvider):
         """
         uri = "/api/getdps/"
 
-        # Prioritize getting IP from cache
+        # 优先从缓存获取IP
         ip_cache_list = self.ip_cache.load_all_ip(proxy_brand_name=self.proxy_brand_name)
         if len(ip_cache_list) >= num:
             return ip_cache_list[:num]
 
-        # If the quantity in cache is insufficient, get from IP provider to supplement, then store in cache
+        # 如果缓存数量不足,从IP提供商获取补充,然后存入缓存
         need_get_count = num - len(ip_cache_list)
         self.params.update({"num": need_get_count})
 
@@ -117,19 +117,19 @@ class KuaiDaiLiProxy(ProxyProvider):
             response = await client.get(self.api_base + uri, params=self.params)
 
             if response.status_code != 200:
-                utils.logger.error(f"[KuaiDaiLiProxy.get_proxies] statuc code not 200 and response.txt:{response.text}, status code: {response.status_code}")
-                raise Exception("get ip error from proxy provider and status code not 200 ...")
+                utils.logger.error(f"[KuaiDaiLiProxy.get_proxies] 状态码不是200,响应内容:{response.text}, 状态码: {response.status_code}")
+                raise Exception("从代理提供商获取IP错误,状态码不是200...")
 
             ip_response: Dict = response.json()
             if ip_response.get("code") != 0:
-                utils.logger.error(f"[KuaiDaiLiProxy.get_proxies]  code not 0 and msg:{ip_response.get('msg')}")
-                raise Exception("get ip error from proxy provider and  code not 0 ...")
+                utils.logger.error(f"[KuaiDaiLiProxy.get_proxies] code不为0,消息:{ip_response.get('msg')}")
+                raise Exception("从代理提供商获取IP错误,code不为0...")
 
             proxy_list: List[str] = ip_response.get("data", {}).get("proxy_list")
             for proxy in proxy_list:
                 proxy_model = parse_kuaidaili_proxy(proxy)
-                # expire_ts is relative time (seconds), needs to be converted to absolute timestamp
-                # Consider expired DELTA_EXPIRED_SECOND seconds in advance to avoid critical time usage failure
+                # expire_ts是相对时间(秒),需要转换为绝对时间戳
+                # 提前DELTA_EXPIRED_SECOND秒考虑过期,以避免关键时间使用失败
                 ip_info_model = IpInfoModel(
                     ip=proxy_model.ip,
                     port=proxy_model.port,
@@ -139,7 +139,7 @@ class KuaiDaiLiProxy(ProxyProvider):
 
                 )
                 ip_key = f"{self.proxy_brand_name}_{ip_info_model.ip}_{ip_info_model.port}"
-                # Cache expiration time uses relative time (seconds), also needs to subtract buffer time
+                # 缓存过期时间使用相对时间(秒),也需要减去缓冲时间
                 self.ip_cache.set_ip(ip_key, ip_info_model.model_dump_json(), ex=proxy_model.expire_ts - DELTA_EXPIRED_SECOND)
                 ip_infos.append(ip_info_model)
 
@@ -148,15 +148,15 @@ class KuaiDaiLiProxy(ProxyProvider):
 
 def new_kuai_daili_proxy() -> KuaiDaiLiProxy:
     """
-    Construct KuaiDaili HTTP instance
-    Supports two environment variable naming formats:
-    1. Uppercase format: KDL_SECERT_ID, KDL_SIGNATURE, KDL_USER_NAME, KDL_USER_PWD
-    2. Lowercase format: kdl_secret_id, kdl_signature, kdl_user_name, kdl_user_pwd
-    Prioritize uppercase format, use lowercase format if not exists
+    构造KuaiDaili HTTP实例
+    支持两种环境变量命名格式:
+    1. 大写格式: KDL_SECERT_ID, KDL_SIGNATURE, KDL_USER_NAME, KDL_USER_PWD
+    2. 小写格式: kdl_secret_id, kdl_signature, kdl_user_name, kdl_user_pwd
+    优先使用大写格式,不存在则使用小写格式
     Returns:
 
     """
-    # Support both uppercase and lowercase environment variable formats, prioritize uppercase
+    # 支持大写和小写环境变量格式,优先使用大写
     kdl_secret_id = os.getenv("KDL_SECERT_ID") or os.getenv("kdl_secret_id", "your_kuaidaili_secret_id")
     kdl_signature = os.getenv("KDL_SIGNATURE") or os.getenv("kdl_signature", "your_kuaidaili_signature")
     kdl_user_name = os.getenv("KDL_USER_NAME") or os.getenv("kdl_user_name", "your_kuaidaili_username")

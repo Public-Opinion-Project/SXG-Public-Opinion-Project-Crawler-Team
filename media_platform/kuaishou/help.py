@@ -20,60 +20,76 @@
 
 # -*- coding: utf-8 -*-
 
+"""
+快手辅助工具模块
+
+提供快手视频和创作者 URL 解析功能
+"""
+
 import re
 from model.m_kuaishou import VideoUrlInfo, CreatorUrlInfo
 
 
 def parse_video_info_from_url(url: str) -> VideoUrlInfo:
     """
-    Parse video ID from Kuaishou video URL
-    Supports the following formats:
-    1. Full video URL: "https://www.kuaishou.com/short-video/3x3zxz4mjrsc8ke?authorId=3x84qugg4ch9zhs&streamSource=search"
-    2. Pure video ID: "3x3zxz4mjrsc8ke"
+    解析快手视频 URL 获取视频 ID
+    
+    支持以下格式：
+    1. 完整视频链接: "https://www.kuaishou.com/short-video/3x3zxz4mjrsc8ke?authorId=3x84qugg4ch9zhs&streamSource=search"
+    2. 纯视频 ID: "3x3zxz4mjrsc8ke"
 
-    Args:
-        url: Kuaishou video link or video ID
-    Returns:
-        VideoUrlInfo: Object containing video ID
+    参数:
+        url: 快手视频链接或视频 ID
+        
+    返回:
+        VideoUrlInfo: 包含视频 ID 的对象
+        
+    抛出:
+        ValueError: 无法从 URL 解析视频 ID
     """
-    # If it doesn't contain http and doesn't contain kuaishou.com, consider it as pure ID
+    # 如果不包含 http 且不包含 kuaishou.com，则视为纯 ID
     if not url.startswith("http") and "kuaishou.com" not in url:
         return VideoUrlInfo(video_id=url, url_type="normal")
 
-    # Extract ID from standard video URL: /short-video/video_ID
+    # 从标准视频 URL 中提取 ID: /short-video/video_ID
     video_pattern = r'/short-video/([a-zA-Z0-9_-]+)'
     match = re.search(video_pattern, url)
     if match:
         video_id = match.group(1)
         return VideoUrlInfo(video_id=video_id, url_type="normal")
 
-    raise ValueError(f"Unable to parse video ID from URL: {url}")
+    raise ValueError(f"无法从 URL 解析视频 ID: {url}")
 
 
 def parse_creator_info_from_url(url: str) -> CreatorUrlInfo:
     """
-    Parse creator ID from Kuaishou creator homepage URL
-    Supports the following formats:
-    1. Creator homepage: "https://www.kuaishou.com/profile/3x84qugg4ch9zhs"
-    2. Pure ID: "3x4sm73aye7jq7i"
+    解析快手创作者主页 URL 获取创作者 ID
+    
+    支持以下格式：
+    1. 创作者主页: "https://www.kuaishou.com/profile/3x84qugg4ch9zhs"
+    2. 纯 ID: "3x4sm73aye7jq7i"
 
-    Args:
-        url: Kuaishou creator homepage link or user_id
-    Returns:
-        CreatorUrlInfo: Object containing creator ID
+    参数:
+        url: 快手创作者主页链接或用户 ID
+        
+    返回:
+        CreatorUrlInfo: 包含创作者 ID 的对象
+        
+    抛出:
+        ValueError: 无法从 URL 解析创作者 ID
     """
-    # If it doesn't contain http and doesn't contain kuaishou.com, consider it as pure ID
+    # 如果不包含 http 且不包含 kuaishou.com，则视为纯 ID
     if not url.startswith("http") and "kuaishou.com" not in url:
         return CreatorUrlInfo(user_id=url)
 
-    # Extract user_id from creator homepage URL: /profile/xxx
+    # 从创作者主页 URL 中提取 user_id: /profile/xxx
     user_pattern = r'/profile/([a-zA-Z0-9_-]+)'
     match = re.search(user_pattern, url)
     if match:
         user_id = match.group(1)
         return CreatorUrlInfo(user_id=user_id)
 
-    raise ValueError(f"Unable to parse creator ID from URL: {url}")
+    raise ValueError(f"无法从 URL 解析创作者 ID: {url}")
 
 
 if __name__ == '__main__':

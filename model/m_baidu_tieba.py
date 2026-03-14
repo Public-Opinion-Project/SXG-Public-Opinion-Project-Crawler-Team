@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 
 class TiebaNote(BaseModel):
     """
-    Baidu Tieba post
+    百度贴吧帖子
     """
     note_id: str = Field(..., description="Post ID")
     title: str = Field(..., description="Post title")
@@ -46,7 +46,7 @@ class TiebaNote(BaseModel):
 
 class TiebaComment(BaseModel):
     """
-    Baidu Tieba comment
+    百度贴吧评论
     """
 
     comment_id: str = Field(..., description="Comment ID")
@@ -67,7 +67,7 @@ class TiebaComment(BaseModel):
 
 class TiebaCreator(BaseModel):
     """
-    Baidu Tieba creator
+    百度贴吧创作者
     """
     user_id: str = Field(..., description="User ID")
     user_name: str = Field(..., description="Username")

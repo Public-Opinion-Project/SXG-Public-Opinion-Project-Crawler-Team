@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2025 relakkes@gmail.com
 #
-# This file is part of MediaCrawler project.
-# Repository: https://github.com/NanmiCoder/MediaCrawler/blob/main/media_platform/bilibili/field.py
-# GitHub: https://github.com/NanmiCoder
-# Licensed under NON-COMMERCIAL LEARNING LICENSE 1.1
+# 本文件是 MediaCrawler 项目的一部分。
+# 仓库地址：https://github.com/NanmiCoder/MediaCrawler/blob/main/media_platform/bilibili/field.py
+# GitHub：https://github.com/NanmiCoder
+# 基于 NON-COMMERCIAL LEARNING LICENSE 1.1 许可证授权
 #
-
 # 声明：本代码仅供学习和研究目的使用。使用者应遵守以下原则：
 # 1. 不得用于任何商业用途。
 # 2. 使用时应遵守目标平台的使用条款和robots.txt规则。
@@ -17,38 +16,49 @@
 # 详细许可条款请参阅项目根目录下的LICENSE文件。
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
+"""
+哔哩哔哩平台枚举字段定义模块
 
-# -*- coding: utf-8 -*-
-# @Author  : relakkes@gmail.com
-# @Time    : 2023/12/3 16:20
-# @Desc    :
+定义了在爬取哔哩哔哩数据时需要用到的各种枚举类型
+包括搜索排序方式和评论排序方式等
+"""
 
 from enum import Enum
 
 
 class SearchOrderType(Enum):
-    # Comprehensive sorting
+    """
+    视频搜索排序类型枚举
+
+    用于指定搜索结果的排序方式
+    """
+    # 综合排序（默认）
     DEFAULT = ""
 
-    # Most clicks
+    # 最多点击
     MOST_CLICK = "click"
 
-    # Latest published
+    # 最新发布
     LAST_PUBLISH = "pubdate"
 
-    # Most danmu (comments)
+    # 最多弹幕（评论）
     MOST_DANMU = "dm"
 
-    # Most bookmarks
+    # 最多收藏
     MOST_MARK = "stow"
 
 
 class CommentOrderType(Enum):
-    # By popularity only
+    """
+    评论排序类型枚举
+
+    用于指定评论列表的排序方式
+    """
+    # 按热度排序（只看按点赞排序的热门评论）
     DEFAULT = 0
 
-    # By popularity + time
+    # 混合排序（热门评论 + 最新评论）
     MIXED = 1
 
-    # By time
+    # 按时间排序（最新评论在前）
     TIME = 2

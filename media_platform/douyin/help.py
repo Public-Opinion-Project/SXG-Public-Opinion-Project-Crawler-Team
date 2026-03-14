@@ -18,11 +18,18 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 
+"""
+抖音辅助工具模块
+
+提供抖音 API 签名参数生成和 URL 解析功能
+包括 a_bogus 参数生成、视频/创作者 URL 解析等
+"""
+
 # -*- coding: utf-8 -*-
 # @Author  : relakkes@gmail.com
 # @Name: Programmer Ajiang-Relakkes
 # @Time    : 2024/6/10 02:24
-# @Desc    : Get a_bogus parameter, for learning and communication only, do not use for commercial purposes, contact author to delete if infringement
+# @Desc    : 获取 a_bogus 参数，仅供学习交流使用，不得用于商业用途，如涉及侵权请联系作者删除
 
 import random
 import re
@@ -34,13 +41,17 @@ from playwright.async_api import Page
 from model.m_douyin import VideoUrlInfo, CreatorUrlInfo
 from tools.crawler_util import extract_url_params_to_dict
 
+# 编译抖音签名 JS 文件
 douyin_sign_obj = execjs.compile(open('libs/douyin.js', encoding='utf-8-sig').read())
 
 def get_web_id():
     """
-    Generate random webid
-    Returns:
-
+    生成随机 web_id
+    
+    web_id 是抖音 API 所需的设备标识参数
+    
+    返回:
+        生成的 web_id 字符串
     """
 
     def e(t):
@@ -60,20 +71,34 @@ def get_web_id():
 
 async def get_a_bogus(url: str, params: str, post_data: dict, user_agent: str, page: Page = None):
     """
-    Get a_bogus parameter, currently does not support POST request type signature
+    获取 a_bogus 参数
+    
+    a_bogus 是抖音 API 的签名参数，用于验证请求合法性
+    当前不支持 POST 请求类型的签名
+    
+    参数:
+        url: API 请求 URL
+        params: URL 查询参数字符串
+        post_data: POST 请求数据字典
+        user_agent: 用户代理字符串
+        page: Playwright 页面对象（可选）
+        
+    返回:
+        a_bogus 签名参数
     """
     return get_a_bogus_from_js(url, params, user_agent)
 
 def get_a_bogus_from_js(url: str, params: str, user_agent: str):
     """
-    Get a_bogus parameter through js
-    Args:
-        url:
-        params:
-        user_agent:
-
-    Returns:
-
+    通过 JS 脚本获取 a_bogus 参数
+    
+    参数:
+        url: API 请求 URL
+        params: URL 查询参数字符串
+        user_agent: 用户代理字符串
+        
+    返回:
+        a_bogus 签名参数
     """
     sign_js_name = "sign_datail"
     if "/reply" in url:
@@ -84,10 +109,18 @@ def get_a_bogus_from_js(url: str, params: str, user_agent: str):
 
 async def get_a_bogus_from_playwright(params: str, post_data: dict, user_agent: str, page: Page):
     """
-    Get a_bogus parameter through playwright
-    playwright version is deprecated
-    Returns:
-
+    通过 Playwright 获取 a_bogus 参数
+    
+    此版本已弃用
+    
+    参数:
+        params: URL 查询参数字符串
+        post_data: POST 请求数据字典
+        user_agent: 用户代理字符串
+        page: Playwright 页面对象
+        
+    返回:
+        a_bogus 签名参数
     """
     if not post_data:
         post_data = ""
@@ -100,68 +133,78 @@ async def get_a_bogus_from_playwright(params: str, post_data: dict, user_agent: 
 
 def parse_video_info_from_url(url: str) -> VideoUrlInfo:
     """
-    Parse video ID from Douyin video URL
-    Supports the following formats:
-    1. Normal video link: https://www.douyin.com/video/7525082444551310602
-    2. Link with modal_id parameter:
+    解析抖音视频 URL 获取视频 ID
+    
+    支持以下格式：
+    1. 普通视频链接: https://www.douyin.com/video/7525082444551310602
+    2. 带有 modal_id 参数的链接:
        - https://www.douyin.com/user/MS4wLjABAAAATJPY7LAlaa5X-c8uNdWkvz0jUGgpw4eeXIwu_8BhvqE?modal_id=7525082444551310602
        - https://www.douyin.com/root/search/python?modal_id=7471165520058862848
-    3. Short link: https://v.douyin.com/iF12345ABC/ (requires client parsing)
-    4. Pure ID: 7525082444551310602
+    3. 短链接: https://v.douyin.com/iF12345ABC/（需要客户端解析）
+    4. 纯 ID: 7525082444551310602
 
-    Args:
-        url: Douyin video link or ID
-    Returns:
-        VideoUrlInfo: Object containing video ID
+    参数:
+        url: 抖音视频链接或 ID
+        
+    返回:
+        VideoUrlInfo: 包含视频 ID 的对象
+        
+    抛出:
+        ValueError: 无法从 URL 解析视频 ID
     """
-    # If it's a pure numeric ID, return directly
+    # 如果是纯数字 ID，直接返回
     if url.isdigit():
         return VideoUrlInfo(aweme_id=url, url_type="normal")
 
-    # Check if it's a short link (v.douyin.com)
+    # 检查是否是短链接 (v.douyin.com)
     if "v.douyin.com" in url or url.startswith("http") and len(url) < 50 and "video" not in url:
-        return VideoUrlInfo(aweme_id="", url_type="short")  # Requires client parsing
+        return VideoUrlInfo(aweme_id="", url_type="short")  # 需要客户端解析
 
-    # Try to extract modal_id from URL parameters
+    # 尝试从 URL 参数中提取 modal_id
     params = extract_url_params_to_dict(url)
     modal_id = params.get("modal_id")
     if modal_id:
         return VideoUrlInfo(aweme_id=modal_id, url_type="modal")
 
-    # Extract ID from standard video URL: /video/number
+    # 从标准视频 URL 中提取 ID: /video/number
     video_pattern = r'/video/(\d+)'
     match = re.search(video_pattern, url)
     if match:
         aweme_id = match.group(1)
         return VideoUrlInfo(aweme_id=aweme_id, url_type="normal")
 
-    raise ValueError(f"Unable to parse video ID from URL: {url}")
+    raise ValueError(f"无法从 URL 解析视频 ID: {url}")
 
 
 def parse_creator_info_from_url(url: str) -> CreatorUrlInfo:
     """
-    Parse creator ID (sec_user_id) from Douyin creator homepage URL
-    Supports the following formats:
-    1. Creator homepage: https://www.douyin.com/user/MS4wLjABAAAATJPY7LAlaa5X-c8uNdWkvz0jUGgpw4eeXIwu_8BhvqE?from_tab_name=main
-    2. Pure ID: MS4wLjABAAAATJPY7LAlaa5X-c8uNdWkvz0jUGgpw4eeXIwu_8BhvqE
+    解析抖音创作者主页 URL 获取创作者 ID (sec_user_id)
+    
+    支持以下格式：
+    1. 创作者主页: https://www.douyin.com/user/MS4wLjABAAAATJPY7LAlaa5X-c8uNdWkvz0jUGgpw4eeXIwu_8BhvqE?from_tab_name=main
+    2. 纯 ID: MS4wLjABAAAATJPY7LAlaa5X-c8uNdWkvz0jUGgpw4eeXIwu_8BhvqE
 
-    Args:
-        url: Douyin creator homepage link or sec_user_id
-    Returns:
-        CreatorUrlInfo: Object containing creator ID
+    参数:
+        url: 抖音创作者主页链接或 sec_user_id
+        
+    返回:
+        CreatorUrlInfo: 包含创作者 ID 的对象
+        
+    抛出:
+        ValueError: 无法从 URL 解析创作者 ID
     """
-    # If it's a pure ID format (usually starts with MS4wLjABAAAA), return directly
+    # 如果是纯 ID 格式（通常以 MS4wLjABAAAA 开头），直接返回
     if url.startswith("MS4wLjABAAAA") or (not url.startswith("http") and "douyin.com" not in url):
         return CreatorUrlInfo(sec_user_id=url)
 
-    # Extract sec_user_id from creator homepage URL: /user/xxx
+    # 从创作者主页 URL 中提取 sec_user_id: /user/xxx
     user_pattern = r'/user/([^/?]+)'
     match = re.search(user_pattern, url)
     if match:
         sec_user_id = match.group(1)
         return CreatorUrlInfo(sec_user_id=sec_user_id)
 
-    raise ValueError(f"Unable to parse creator ID from URL: {url}")
+    raise ValueError(f"无法从 URL 解析创作者 ID: {url}")
 
 
 if __name__ == '__main__':

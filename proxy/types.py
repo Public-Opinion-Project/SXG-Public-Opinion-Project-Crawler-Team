@@ -21,7 +21,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : relakkes@gmail.com
 # @Time    : 2024/4/5 10:18
-# @Desc    : Basic types
+# @Desc    : 基础类型
 import time
 from enum import Enum
 from typing import Optional
@@ -35,22 +35,22 @@ class ProviderNameEnum(Enum):
 
 
 class IpInfoModel(BaseModel):
-    """Unified IP model"""
+    """统一的IP模型"""
 
     ip: str = Field(title="ip")
     port: int = Field(title="port")
-    user: str = Field(title="Username for IP proxy authentication")
-    protocol: str = Field(default="https://", title="Protocol for proxy IP")
-    password: str = Field(title="Password for IP proxy authentication user")
-    expired_time_ts: Optional[int] = Field(default=None, title="IP expiration time")
+    user: str = Field(title="IP代理认证用户名")
+    protocol: str = Field(default="https://", title="代理IP协议")
+    password: str = Field(title="IP代理认证用户密码")
+    expired_time_ts: Optional[int] = Field(default=None, title="IP过期时间")
 
     def is_expired(self, buffer_seconds: int = 30) -> bool:
         """
-        Check if proxy IP has expired
+        检查代理IP是否已过期
         Args:
-            buffer_seconds: Buffer time (seconds), how many seconds ahead to consider expired to avoid critical time request failures
+            buffer_seconds: 缓冲时间(秒),提前多少秒认为已过期,以避免关键时间请求失败
         Returns:
-            bool: True means expired or about to expire, False means still valid
+            bool: True表示已过期或即将过期,False表示仍然有效
         """
         if self.expired_time_ts is None:
             return False

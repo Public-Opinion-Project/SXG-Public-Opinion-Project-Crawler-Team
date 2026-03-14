@@ -59,7 +59,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
         # self.user_agent = utils.get_user_agent()
         self.user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
         self.cdp_manager = None
-        self.ip_proxy_pool = None  # Proxy IP pool for automatic proxy refresh
+        self.ip_proxy_pool = None  # 用于自动刷新代理的代理 IP 池
 
     async def start(self) -> None:
         playwright_proxy_format, httpx_proxy_format = None, None
@@ -69,7 +69,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
             playwright_proxy_format, httpx_proxy_format = utils.format_proxy_info(ip_proxy_info)
 
         async with async_playwright() as playwright:
-            # Choose launch mode based on configuration
+            # 根据配置选择启动模式
             if config.ENABLE_CDP_MODE:
                 utils.logger.info("[XiaoHongShuCrawler] Launching browser using CDP mode")
                 self.browser_context = await self.launch_browser_with_cdp(
@@ -80,7 +80,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
                 )
             else:
                 utils.logger.info("[XiaoHongShuCrawler] Launching browser using standard mode")
-                # Launch a browser context.
+                # 启动浏览器上下文
                 chromium = playwright.chromium
                 self.browser_context = await self.launch_browser(
                     chromium,
@@ -88,13 +88,13 @@ class XiaoHongShuCrawler(AbstractCrawler):
                     self.user_agent,
                     headless=config.HEADLESS,
                 )
-                # stealth.min.js is a js script to prevent the website from detecting the crawler.
+                # stealth.min.js 是一个用于防止网站检测爬虫的 JS 脚本
                 await self.browser_context.add_init_script(path="libs/stealth.min.js")
 
             self.context_page = await self.browser_context.new_page()
             await self.context_page.goto(self.index_url)
 
-            # Create a client to interact with the Xiaohongshu website.
+            # 创建一个客户端来与小红书网站交互
             self.xhs_client = await self.create_xhs_client(httpx_proxy_format)
             if not await self.xhs_client.pong():
                 login_obj = XiaoHongShuLogin(
@@ -109,13 +109,13 @@ class XiaoHongShuCrawler(AbstractCrawler):
 
             crawler_type_var.set(config.CRAWLER_TYPE)
             if config.CRAWLER_TYPE == "search":
-                # Search for notes and retrieve their comment information.
+                # 搜索笔记并获取评论信息
                 await self.search()
             elif config.CRAWLER_TYPE == "detail":
-                # Get the information and comments of the specified post
+                # 获取指定帖子的信息和评论
                 await self.get_specified_notes()
             elif config.CRAWLER_TYPE == "creator":
-                # Get creator's information and their notes and comments
+                # 获取创作者的信息及其笔记和评论
                 await self.get_creators_and_notes()
             else:
                 pass
@@ -123,9 +123,9 @@ class XiaoHongShuCrawler(AbstractCrawler):
             utils.logger.info("[XiaoHongShuCrawler.start] Xhs Crawler finished ...")
 
     async def search(self) -> None:
-        """Search for notes and retrieve their comment information."""
+        """搜索笔记并获取评论信息"""
         utils.logger.info("[XiaoHongShuCrawler.search] Begin search Xiaohongshu keywords")
-        xhs_limit_count = 20  # Xiaohongshu limit page fixed value
+        xhs_limit_count = 20  # 小红书每页固定限制值
         if config.CRAWLER_MAX_NOTES_COUNT < xhs_limit_count:
             config.CRAWLER_MAX_NOTES_COUNT = xhs_limit_count
         start_page = config.START_PAGE
@@ -174,7 +174,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
                     utils.logger.info(f"[XiaoHongShuCrawler.search] Note details: {note_details}")
                     await self.batch_get_note_comments(note_ids, xsec_tokens)
 
-                    # Sleep after each page navigation
+                    # 每页导航后休眠
                     await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
                     utils.logger.info(f"[XiaoHongShuCrawler.search] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after page {page-1}")
                 except DataFetchError:
@@ -182,16 +182,16 @@ class XiaoHongShuCrawler(AbstractCrawler):
                     break
 
     async def get_creators_and_notes(self) -> None:
-        """Get creator's notes and retrieve their comment information."""
+        """获取创作者的笔记并获取评论信息"""
         utils.logger.info("[XiaoHongShuCrawler.get_creators_and_notes] Begin get Xiaohongshu creators")
         for creator_url in config.XHS_CREATOR_ID_LIST:
             try:
-                # Parse creator URL to get user_id and security tokens
+                # 解析创作者 URL 获取 user_id 和安全令牌
                 creator_info: CreatorUrlInfo = parse_creator_info_from_url(creator_url)
                 utils.logger.info(f"[XiaoHongShuCrawler.get_creators_and_notes] Parse creator URL info: {creator_info}")
                 user_id = creator_info.user_id
 
-                # get creator detail info from web html content
+                # 从网页 HTML 内容获取创作者详细信息
                 createor_info: Dict = await self.xhs_client.get_creator_info(
                     user_id=user_id,
                     xsec_token=creator_info.xsec_token,
@@ -203,9 +203,9 @@ class XiaoHongShuCrawler(AbstractCrawler):
                 utils.logger.error(f"[XiaoHongShuCrawler.get_creators_and_notes] Failed to parse creator URL: {e}")
                 continue
 
-            # Use fixed crawling interval
+            # 使用固定的爬取间隔
             crawl_interval = config.CRAWLER_MAX_SLEEP_SEC
-            # Get all note information of the creator
+            # 获取创作者的所有笔记信息
             all_notes_list = await self.xhs_client.get_all_notes_by_creator(
                 user_id=user_id,
                 crawl_interval=crawl_interval,
@@ -222,7 +222,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
             await self.batch_get_note_comments(note_ids, xsec_tokens)
 
     async def fetch_creator_notes_detail(self, note_list: List[Dict]):
-        """Concurrently obtain the specified post list and save the data"""
+        """并发获取指定帖子列表并保存数据"""
         semaphore = asyncio.Semaphore(config.MAX_CONCURRENCY_NUM)
         task_list = [
             self.get_note_detail_async_task(
@@ -240,9 +240,9 @@ class XiaoHongShuCrawler(AbstractCrawler):
                 await self.get_notice_media(note_detail)
 
     async def get_specified_notes(self):
-        """Get the information and comments of the specified post
+        """获取指定帖子的信息和评论
 
-        Note: Must specify note_id, xsec_source, xsec_token
+        注意：必须指定 note_id、xsec_source、xsec_token
         """
         get_note_detail_task_list = []
         for full_note_url in config.XHS_SPECIFIED_NOTE_URL_LIST:
@@ -274,16 +274,16 @@ class XiaoHongShuCrawler(AbstractCrawler):
         xsec_token: str,
         semaphore: asyncio.Semaphore,
     ) -> Optional[Dict]:
-        """Get note detail
+        """获取笔记详情
 
-        Args:
+        参数:
             note_id:
             xsec_source:
             xsec_token:
             semaphore:
 
-        Returns:
-            Dict: note detail
+        返回:
+            Dict: 笔记详情
         """
         note_detail = None
         utils.logger.info(f"[get_note_detail_async_task] Begin get note detail, note_id: {note_id}")
@@ -302,7 +302,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
 
                 note_detail.update({"xsec_token": xsec_token, "xsec_source": xsec_source})
 
-                # Sleep after fetching note detail
+                # 获取笔记详情后休眠
                 await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
                 utils.logger.info(f"[get_note_detail_async_task] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after fetching note {note_id}")
 
@@ -319,7 +319,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
                 return None
 
     async def batch_get_note_comments(self, note_list: List[str], xsec_tokens: List[str]):
-        """Batch get note comments"""
+        """批量获取笔记评论"""
         if not config.ENABLE_GET_COMMENTS:
             utils.logger.info(f"[XiaoHongShuCrawler.batch_get_note_comments] Crawling comment mode is not enabled")
             return
@@ -336,10 +336,10 @@ class XiaoHongShuCrawler(AbstractCrawler):
         await asyncio.gather(*task_list)
 
     async def get_comments(self, note_id: str, xsec_token: str, semaphore: asyncio.Semaphore):
-        """Get note comments with keyword filtering and quantity limitation"""
+        """获取带有关键词过滤和数量限制的笔记评论"""
         async with semaphore:
             utils.logger.info(f"[XiaoHongShuCrawler.get_comments] Begin get note id comments {note_id}")
-            # Use fixed crawling interval
+            # 使用固定的爬取间隔
             crawl_interval = config.CRAWLER_MAX_SLEEP_SEC
             await self.xhs_client.get_note_all_comments(
                 note_id=note_id,
@@ -349,12 +349,12 @@ class XiaoHongShuCrawler(AbstractCrawler):
                 max_count=config.CRAWLER_MAX_COMMENTS_COUNT_SINGLENOTES,
             )
 
-            # Sleep after fetching comments
+            # 获取评论后休眠
             await asyncio.sleep(crawl_interval)
             utils.logger.info(f"[XiaoHongShuCrawler.get_comments] Sleeping for {crawl_interval} seconds after fetching comments for note {note_id}")
 
     async def create_xhs_client(self, httpx_proxy: Optional[str]) -> XiaoHongShuClient:
-        """Create Xiaohongshu client"""
+        """创建小红书客户端"""
         utils.logger.info("[XiaoHongShuCrawler.create_xhs_client] Begin create Xiaohongshu API client ...")
         cookie_str, cookie_dict = utils.convert_cookies(await self.browser_context.cookies())
         xhs_client_obj = XiaoHongShuClient(
@@ -379,7 +379,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
             },
             playwright_page=self.context_page,
             cookie_dict=cookie_dict,
-            proxy_ip_pool=self.ip_proxy_pool,  # Pass proxy pool for automatic refresh
+            proxy_ip_pool=self.ip_proxy_pool,  # 传入代理池用于自动刷新
         )
         return xhs_client_obj
 
@@ -390,11 +390,11 @@ class XiaoHongShuCrawler(AbstractCrawler):
         user_agent: Optional[str],
         headless: bool = True,
     ) -> BrowserContext:
-        """Launch browser and create browser context"""
+        """启动浏览器并创建浏览器上下文"""
         utils.logger.info("[XiaoHongShuCrawler.launch_browser] Begin create browser context ...")
         if config.SAVE_LOGIN_STATE:
-            # feat issue #14
-            # we will save login state to avoid login every time
+            # 功能问题 #14
+            # 我们将保存登录状态以避免每次都登录
             user_data_dir = os.path.join(os.getcwd(), "browser_data", config.USER_DATA_DIR % config.PLATFORM)  # type: ignore
             browser_context = await chromium.launch_persistent_context(
                 user_data_dir=user_data_dir,
@@ -420,7 +420,7 @@ class XiaoHongShuCrawler(AbstractCrawler):
         user_agent: Optional[str],
         headless: bool = True,
     ) -> BrowserContext:
-        """Launch browser using CDP mode"""
+        """使用 CDP 模式启动浏览器"""
         try:
             self.cdp_manager = CDPBrowserManager()
             browser_context = await self.cdp_manager.launch_and_connect(
@@ -430,21 +430,21 @@ class XiaoHongShuCrawler(AbstractCrawler):
                 headless=headless,
             )
 
-            # Display browser information
+            # 显示浏览器信息
             browser_info = await self.cdp_manager.get_browser_info()
             utils.logger.info(f"[XiaoHongShuCrawler] CDP browser info: {browser_info}")
 
             return browser_context
 
         except Exception as e:
-            utils.logger.error(f"[XiaoHongShuCrawler] CDP mode launch failed, falling back to standard mode: {e}")
-            # Fall back to standard mode
+            utils.logger.error(f"[XiaoHongShuCrawler] CDP 模式启动失败，回退到标准模式: {e}")
+            # 回退到标准模式
             chromium = playwright.chromium
             return await self.launch_browser(chromium, playwright_proxy, user_agent, headless)
 
     async def close(self):
-        """Close browser context"""
-        # Special handling if using CDP mode
+        """关闭浏览器上下文"""
+        # 如果使用 CDP 模式则进行特殊处理
         if self.cdp_manager:
             await self.cdp_manager.cleanup()
             self.cdp_manager = None
@@ -460,10 +460,10 @@ class XiaoHongShuCrawler(AbstractCrawler):
         await self.get_notice_video(note_detail)
 
     async def get_note_images(self, note_item: Dict):
-        """Get note images. Please use get_notice_media
+        """获取笔记图片。请使用 get_notice_media
 
-        Args:
-            note_item: Note item dictionary
+        参数:
+            note_item: 笔记项字典
         """
         if not config.ENABLE_GET_MEIDAS:
             return
@@ -490,10 +490,10 @@ class XiaoHongShuCrawler(AbstractCrawler):
             await xhs_store.update_xhs_note_image(note_id, content, extension_file_name)
 
     async def get_notice_video(self, note_item: Dict):
-        """Get note videos. Please use get_notice_media
+        """获取笔记视频。请使用 get_notice_media
 
-        Args:
-            note_item: Note item dictionary
+        参数:
+            note_item: 笔记项字典
         """
         if not config.ENABLE_GET_MEIDAS:
             return

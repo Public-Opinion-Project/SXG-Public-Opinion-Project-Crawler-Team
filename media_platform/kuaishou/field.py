@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+
+"""
+快手字段枚举模块
+
+定义快手搜索和筛选相关的枚举类型
+（当前文件为空，可能用于后续扩展）
+"""
 # Copyright (c) 2025 relakkes@gmail.com
 #
 # This file is part of MediaCrawler project.

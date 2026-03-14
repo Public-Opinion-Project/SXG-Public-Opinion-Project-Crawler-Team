@@ -22,7 +22,7 @@
 # @Author  : relakkes@gmail.com
 # @Name    : Programmer AJiang-Relakkes
 # @Time    : 2024/5/29 22:57
-# @Desc    : RedisCache implementation
+# @Desc    : Redis缓存实现
 import pickle
 import time
 from typing import Any, List
@@ -37,13 +37,13 @@ from config import db_config
 class RedisCache(AbstractCache):
 
     def __init__(self) -> None:
-        # Connect to redis, return redis client
+        # 连接Redis，返回Redis客户端
         self._redis_client = self._connet_redis()
 
     @staticmethod
     def _connet_redis() -> Redis:
         """
-        Connect to redis, return redis client, configure redis connection information as needed
+        连接Redis，返回Redis客户端，可根据需要配置Redis连接信息
         :return:
         """
         return Redis(
@@ -55,7 +55,7 @@ class RedisCache(AbstractCache):
 
     def get(self, key: str) -> Any:
         """
-        Get the value of a key from the cache and deserialize it
+        从缓存中获取键对应的值并反序列化
         :param key:
         :return:
         """
@@ -66,7 +66,7 @@ class RedisCache(AbstractCache):
 
     def set(self, key: str, value: Any, expire_time: int) -> None:
         """
-        Set the value of a key in the cache and serialize it
+        在缓存中设置键对应的值并序列化
         :param key:
         :param value:
         :param expire_time:
@@ -76,14 +76,14 @@ class RedisCache(AbstractCache):
 
     def keys(self, pattern: str) -> List[str]:
         """
-        Get all keys matching the pattern
-        First try KEYS command, if not supported fallback to SCAN
+        获取所有匹配模式的键
+        首先尝试KEYS命令，如果不支持则回退到SCAN
         """
         try:
-            # Try KEYS command first (faster for standard Redis)
+            # 首先尝试KEYS命令（标准Redis更快）
             return [key.decode() if isinstance(key, bytes) else key for key in self._redis_client.keys(pattern)]
         except ResponseError as e:
-            # If KEYS is not supported (e.g., Redis Cluster or cloud Redis), use SCAN
+            # 如果KEYS不支持（如Redis Cluster或云Redis），使用SCAN
             if "unknown command" in str(e).lower() or "keys" in str(e).lower():
                 keys_list: List[str] = []
                 cursor = 0
@@ -94,21 +94,21 @@ class RedisCache(AbstractCache):
                         break
                 return keys_list
             else:
-                # Re-raise if it's a different error
+                # 如果是其他错误，重新抛出
                 raise
 
 
 if __name__ == '__main__':
     redis_cache = RedisCache()
-    # basic usage
+    # 基本用法
     redis_cache.set("name", "Programmer AJiang-Relakkes", 1)
     print(redis_cache.get("name"))  # Relakkes
     print(redis_cache.keys("*"))  # ['name']
     time.sleep(2)
     print(redis_cache.get("name"))  # None
 
-    # special python type usage
-    # list
+    # 特殊Python类型用法
+    # 列表
     redis_cache.set("list", [1, 2, 3], 10)
     _value = redis_cache.get("list")
     print(_value, f"value type:{type(_value)}")  # [1, 2, 3]

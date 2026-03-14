@@ -22,7 +22,7 @@
 # @Author  : relakkes@gmail.com
 # @Name    : Programmer AJiang-Relakkes
 # @Time    : 2024/6/2 11:06
-# @Desc    : Abstract class
+# @Desc    : 抽象类
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional
@@ -33,9 +33,9 @@ class AbstractCache(ABC):
     @abstractmethod
     def get(self, key: str) -> Optional[Any]:
         """
-        Get the value of a key from the cache.
-        This is an abstract method. Subclasses must implement this method.
-        :param key: The key
+        从缓存中获取键对应的值。
+        这是一个抽象方法。子类必须实现此方法。
+        :param key: 键
         :return:
         """
         raise NotImplementedError
@@ -43,11 +43,11 @@ class AbstractCache(ABC):
     @abstractmethod
     def set(self, key: str, value: Any, expire_time: int) -> None:
         """
-        Set the value of a key in the cache.
-        This is an abstract method. Subclasses must implement this method.
-        :param key: The key
-        :param value: The value
-        :param expire_time: Expiration time
+        在缓存中设置键对应的值。
+        这是一个抽象方法。子类必须实现此方法。
+        :param key: 键
+        :param value: 值
+        :param expire_time: 过期时间
         :return:
         """
         raise NotImplementedError
@@ -55,8 +55,8 @@ class AbstractCache(ABC):
     @abstractmethod
     def keys(self, pattern: str) -> List[str]:
         """
-        Get all keys matching the pattern
-        :param pattern: Matching pattern
+        获取所有匹配模式的键
+        :param pattern: 匹配模式
         :return:
         """
         raise NotImplementedError

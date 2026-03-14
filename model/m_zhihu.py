@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 
 class ZhihuContent(BaseModel):
     """
-    Zhihu content (answer, article, video)
+    知乎内容（回答、文章、视频）
     """
     content_id: str = Field(default="", description="Content ID")
     content_type: str = Field(default="", description="Content type (article | answer | zvideo)")
@@ -50,7 +50,7 @@ class ZhihuContent(BaseModel):
 
 class ZhihuComment(BaseModel):
     """
-    Zhihu comment
+    知乎评论
     """
 
     comment_id: str = Field(default="", description="Comment ID")
@@ -72,7 +72,7 @@ class ZhihuComment(BaseModel):
 
 class ZhihuCreator(BaseModel):
     """
-    Zhihu creator
+    知乎创作者
     """
     user_id: str = Field(default="", description="User ID")
     user_link: str = Field(default="", description="User homepage link")

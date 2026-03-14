@@ -28,39 +28,39 @@ class AbstractCrawler(ABC):
     @abstractmethod
     async def start(self):
         """
-        start crawler
+        启动爬虫
         """
         pass
 
     @abstractmethod
     async def search(self):
         """
-        search
+        搜索
         """
         pass
 
     @abstractmethod
     async def launch_browser(self, chromium: BrowserType, playwright_proxy: Optional[Dict], user_agent: Optional[str], headless: bool = True) -> BrowserContext:
         """
-        launch browser
-        :param chromium: chromium browser
-        :param playwright_proxy: playwright proxy
-        :param user_agent: user agent
-        :param headless: headless mode
-        :return: browser context
+        启动浏览器
+        :param chromium: Chromium浏览器
+        :param playwright_proxy: Playwright代理配置
+        :param user_agent: 用户代理
+        :param headless: 无头模式
+        :return: 浏览器上下文
         """
         pass
 
     async def launch_browser_with_cdp(self, playwright: Playwright, playwright_proxy: Optional[Dict], user_agent: Optional[str], headless: bool = True) -> BrowserContext:
         """
-        Launch browser using CDP mode (optional implementation)
-        :param playwright: playwright instance
-        :param playwright_proxy: playwright proxy configuration
-        :param user_agent: user agent
-        :param headless: headless mode
-        :return: browser context
+        使用CDP模式启动浏览器（可选实现）
+        :param playwright: Playwright实例
+        :param playwright_proxy: Playwright代理配置
+        :param user_agent: 用户代理
+        :param headless: 无头模式
+        :return: 浏览器上下文
         """
-        # Default implementation: fallback to standard mode
+        # 默认实现：回退到标准模式
         return await self.launch_browser(playwright.chromium, playwright_proxy, user_agent, headless)
 
 
@@ -93,24 +93,24 @@ class AbstractStore(ABC):
     async def store_comment(self, comment_item: Dict):
         pass
 
-    # TODO support all platform
-    # only xhs is supported, so @abstractmethod is commented
+    # TODO：支持所有平台
+    # 目前仅支持小红书，因此 @abstractmethod 已注释
     @abstractmethod
     async def store_creator(self, creator: Dict):
         pass
 
 
 class AbstractStoreImage(ABC):
-    # TODO: support all platform
-    # only weibo is supported
+    # TODO: 支持所有平台
+    # 目前仅支持微博
     # @abstractmethod
     async def store_image(self, image_content_item: Dict):
         pass
 
 
 class AbstractStoreVideo(ABC):
-    # TODO: support all platform
-    # only weibo is supported
+    # TODO: 支持所有平台
+    # 目前仅支持微博
     # @abstractmethod
     async def store_video(self, video_content_item: Dict):
         pass

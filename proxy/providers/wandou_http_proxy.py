@@ -20,7 +20,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : relakkes@gmail.com
 # @Time    : 2025/7/31
-# @Desc    : WanDou HTTP proxy IP implementation
+# @Desc    : WanDou HTTP代理IP实现
 import os
 from typing import Dict, List
 from urllib.parse import urlencode
@@ -36,9 +36,9 @@ class WanDouHttpProxy(ProxyProvider):
 
     def __init__(self, app_key: str, num: int = 100):
         """
-        WanDou HTTP proxy IP implementation
-        :param app_key: Open app_key, can be obtained through user center
-        :param num: Number of IPs extracted at once, maximum 100
+        WanDou HTTP代理IP实现
+        :param app_key: 开放app_key,可通 过用户中心获取
+        :param num: 每次提取IP数量,最大100
         """
         self.proxy_brand_name = "WANDOUHTTP"
         self.api_path = "https://api.wandouapp.com/"
@@ -54,16 +54,16 @@ class WanDouHttpProxy(ProxyProvider):
         :return:
         """
 
-        # Prioritize getting IP from cache
+        # 优先从缓存获取IP
         ip_cache_list = self.ip_cache.load_all_ip(
             proxy_brand_name=self.proxy_brand_name
         )
         if len(ip_cache_list) >= num:
             return ip_cache_list[:num]
 
-        # If the quantity in cache is insufficient, get from IP provider to supplement, then store in cache
+        # 如果缓存数量不足,从IP提供商获取补充,然后存入缓存
         need_get_count = num - len(ip_cache_list)
-        self.params.update({"num": min(need_get_count, 100)})  # Maximum 100
+        self.params.update({"num": min(need_get_count, 100)})  # 最多100
         ip_infos = []
         async with httpx.AsyncClient() as client:
             url = self.api_path + "?" + urlencode(self.params)
@@ -82,7 +82,7 @@ class WanDouHttpProxy(ProxyProvider):
                     ip_info_model = IpInfoModel(
                         ip=ip_item.get("ip"),
                         port=ip_item.get("port"),
-                        user="",  # WanDou HTTP does not require username password authentication
+                        user="",  # WanDou HTTP不需要用户名密码认证
                         password="",
                         expired_time_ts=utils.get_unix_time_from_time_str(
                             ip_item.get("expire_time")
@@ -95,28 +95,28 @@ class WanDouHttpProxy(ProxyProvider):
                         ip_key, ip_value, ex=ip_info_model.expired_time_ts - current_ts
                     )
             else:
-                error_msg = res_dict.get("msg", "unknown error")
-                # Handle specific error codes
+                error_msg = res_dict.get("msg", "未知错误")
+                # 处理特定的错误码
                 error_code = res_dict.get("code")
                 if error_code == 10001:
-                    error_msg = "General error, check msg content for specific error information"
+                    error_msg = "通用错误,请查看msg内容了解具体错误信息"
                 elif error_code == 10048:
-                    error_msg = "No available package"
+                    error_msg = "无可用套餐"
                 raise IpGetError(f"{error_msg} (code: {error_code})")
         return ip_cache_list + ip_infos
 
 
 def new_wandou_http_proxy() -> WanDouHttpProxy:
     """
-    Construct WanDou HTTP instance
-    Supports two environment variable naming formats:
-    1. Uppercase format: WANDOU_APP_KEY
-    2. Lowercase format: wandou_app_key
-    Prioritize uppercase format, use lowercase format if not exists
+    构造WanDou HTTP实例
+    支持两种环境变量命名格式:
+    1. 大写格式: WANDOU_APP_KEY
+    2. 小写格式: wandou_app_key
+    优先使用大写格式,不存在则使用小写格式
     Returns:
 
     """
-    # Support both uppercase and lowercase environment variable formats, prioritize uppercase
+    # 支持大写和小写环境变量格式,优先使用大写
     app_key = os.getenv("WANDOU_APP_KEY") or os.getenv("wandou_app_key", "your_wandou_http_app_key")
 
     return WanDouHttpProxy(app_key=app_key)

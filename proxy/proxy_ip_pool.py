@@ -20,7 +20,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : relakkes@gmail.com
 # @Time    : 2023/12/2 13:45
-# @Desc    : IP proxy pool implementation
+# @Desc    : IP代理池实现
 import random
 from typing import Dict, List
 
@@ -50,16 +50,16 @@ class ProxyIpPool:
             enable_validate_ip:
             ip_provider:
         """
-        self.valid_ip_url = "https://echo.apifox.cn/"  # URL to validate if IP is valid
+        self.valid_ip_url = "https://echo.apifox.cn/"  # 验证IP是否有效的URL
         self.ip_pool_count = ip_pool_count
         self.enable_validate_ip = enable_validate_ip
         self.proxy_list: List[IpInfoModel] = []
         self.ip_provider: ProxyProvider = ip_provider
-        self.current_proxy: IpInfoModel | None = None  # Currently used proxy
+        self.current_proxy: IpInfoModel | None = None  # 当前使用的代理
 
     async def load_proxies(self) -> None:
         """
-        Load IP proxies
+        加载IP代理
         Returns:
 
         """
@@ -67,15 +67,15 @@ class ProxyIpPool:
 
     async def _is_valid_proxy(self, proxy: IpInfoModel) -> bool:
         """
-        Validate if proxy IP is valid
+        验证代理IP是否有效
         :param proxy:
         :return:
         """
         utils.logger.info(
-            f"[ProxyIpPool._is_valid_proxy] testing {proxy.ip} is it valid "
+            f"[ProxyIpPool._is_valid_proxy] 测试 {proxy.ip} 是否有效 "
         )
         try:
-            # httpx 0.28.1 requires passing proxy URL string directly, not a dictionary
+            # httpx 0.28.1 需要直接传递代理URL字符串,而不是字典
             if proxy.user and proxy.password:
                 proxy_url = f"http://{proxy.user}:{proxy.password}@{proxy.ip}:{proxy.port}"
             else:
@@ -89,36 +89,36 @@ class ProxyIpPool:
                 return False
         except Exception as e:
             utils.logger.info(
-                f"[ProxyIpPool._is_valid_proxy] testing {proxy.ip} err: {e}"
+                f"[ProxyIpPool._is_valid_proxy] 测试 {proxy.ip} 错误: {e}"
             )
             raise e
 
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
     async def get_proxy(self) -> IpInfoModel:
         """
-        Randomly extract a proxy IP from the proxy pool
+        从代理池中随机抽取一个代理IP
         :return:
         """
         if len(self.proxy_list) == 0:
             await self._reload_proxies()
 
         proxy = random.choice(self.proxy_list)
-        self.proxy_list.remove(proxy)  # Remove an IP once extracted
+        self.proxy_list.remove(proxy)  # 取出后移除一个IP
         if self.enable_validate_ip:
             if not await self._is_valid_proxy(proxy):
                 raise Exception(
-                    "[ProxyIpPool.get_proxy] current ip invalid and again get it"
+                    "[ProxyIpPool.get_proxy] 当前IP无效,重新获取"
                 )
-        self.current_proxy = proxy  # Save currently used proxy
+        self.current_proxy = proxy  # 保存当前使用的代理
         return proxy
 
     def is_current_proxy_expired(self, buffer_seconds: int = 30) -> bool:
         """
-        Check if current proxy has expired
+        检查当前代理是否已过期
         Args:
-            buffer_seconds: Buffer time (seconds), how many seconds ahead to consider expired
+            buffer_seconds: 缓冲时间(秒),提前多少秒认为已过期
         Returns:
-            bool: True means expired or no current proxy, False means still valid
+            bool: True表示已过期或无当前代理,False表示仍然有效
         """
         if self.current_proxy is None:
             return True
@@ -126,23 +126,23 @@ class ProxyIpPool:
 
     async def get_or_refresh_proxy(self, buffer_seconds: int = 30) -> IpInfoModel:
         """
-        Get current proxy, automatically refresh if expired
-        Call this method before each request to ensure proxy is valid
+        获取当前代理,如果已过期则自动刷新
+        在每次请求前调用此方法以确保代理有效
         Args:
-            buffer_seconds: Buffer time (seconds), how many seconds ahead to consider expired
+            buffer_seconds: 缓冲时间(秒),提前多少秒认为已过期
         Returns:
-            IpInfoModel: Valid proxy IP information
+            IpInfoModel: 有效的代理IP信息
         """
         if self.is_current_proxy_expired(buffer_seconds):
             utils.logger.info(
-                f"[ProxyIpPool.get_or_refresh_proxy] Current proxy expired or not set, getting new proxy..."
+                f"[ProxyIpPool.get_or_refresh_proxy] 当前代理已过期或未设置,获取新代理..."
             )
             return await self.get_proxy()
         return self.current_proxy
 
     async def _reload_proxies(self):
         """
-        Reload proxy pool
+        重新加载代理池
         :return:
         """
         self.proxy_list = []
@@ -157,9 +157,9 @@ IpProxyProvider: Dict[str, ProxyProvider] = {
 
 async def create_ip_pool(ip_pool_count: int, enable_validate_ip: bool) -> ProxyIpPool:
     """
-    Create IP proxy pool
-    :param ip_pool_count: Number of IPs in the pool
-    :param enable_validate_ip: Whether to enable IP proxy validation
+    创建IP代理池
+    :param ip_pool_count: 池中IP的数量
+    :param enable_validate_ip: 是否启用IP代理验证
     :return:
     """
     pool = ProxyIpPool(

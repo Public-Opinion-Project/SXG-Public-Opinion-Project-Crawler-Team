@@ -27,16 +27,16 @@
 
 class CacheFactory:
     """
-    Cache factory class
+    缓存工厂类
     """
 
     @staticmethod
     def create_cache(cache_type: str, *args, **kwargs):
         """
-        Create cache object
-        :param cache_type: Cache type
-        :param args: Arguments
-        :param kwargs: Keyword arguments
+        创建缓存对象
+        :param cache_type: 缓存类型
+        :param args: 位置参数
+        :param kwargs: 关键字参数
         :return:
         """
         if cache_type == 'memory':
@@ -46,4 +46,4 @@ class CacheFactory:
             from .redis_cache import RedisCache
             return RedisCache()
         else:
-            raise ValueError(f'Unknown cache type: {cache_type}')
+            raise ValueError(f'未知的缓存类型: {cache_type}')

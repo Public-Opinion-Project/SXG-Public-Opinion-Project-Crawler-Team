@@ -20,17 +20,39 @@
 
 # Kuaishou's data transmission is based on GraphQL
 # This class is responsible for obtaining some GraphQL schemas
+"""
+快手 GraphQL 查询模块
+
+负责加载和管理快手 API 的 GraphQL 查询语句
+快手的数据传输基于 GraphQL 协议
+"""
+
 from typing import Dict
 
 
 class KuaiShouGraphQL:
+    """
+    快手 GraphQL 查询类
+    
+    负责从本地文件加载 GraphQL 查询语句
+    """
     graphql_queries: Dict[str, str]= {}
 
     def __init__(self):
+        """
+        初始化 GraphQL 查询加载器
+        
+        设置 GraphQL 文件目录并加载查询语句
+        """
         self.graphql_dir = "media_platform/kuaishou/graphql/"
         self.load_graphql_queries()
 
     def load_graphql_queries(self):
+        """
+        加载 GraphQL 查询文件
+        
+        从 graphql 目录读取所有 .graphql 文件并存储到字典中
+        """
         graphql_files = ["search_query.graphql", "video_detail.graphql", "comment_list.graphql", "vision_profile.graphql","vision_profile_photo_list.graphql","vision_profile_user_list.graphql","vision_sub_comment_list.graphql"]
 
         for file in graphql_files:
@@ -39,4 +61,16 @@ class KuaiShouGraphQL:
                 self.graphql_queries[query_name] = f.read()
 
     def get(self, query_name: str) -> str:
+        """
+        获取指定名称的 GraphQL 查询
+        
+        参数:
+            query_name: 查询名称（不含 .graphql 后缀）
+            
+        返回:
+            GraphQL 查询语句字符串
+            
+        抛出:
+            如果查询不存在返回错误信息
+        """
         return self.graphql_queries.get(query_name, "Query not found")

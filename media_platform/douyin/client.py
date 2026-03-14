@@ -17,6 +17,13 @@
 # 详细许可条款请参阅项目根目录下的LICENSE文件。
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
+"""
+抖音 API 客户端模块
+
+提供抖音平台的 API 调用实现
+包括搜索、视频详情、评论、用户信息等接口
+"""
+
 import asyncio
 import copy
 import json
@@ -40,10 +47,23 @@ from .help import *
 
 
 class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
+    """
+    抖音 API 客户端类
+    
+    负责与抖音 Web API 进行交互
+    继承自 AbstractApiClient 和 ProxyRefreshMixin，支持代理 IP 自动刷新
+    
+    属性:
+        timeout: 请求超时时间（秒）
+        proxy: 代理服务器地址
+        headers: HTTP 请求头
+        playwright_page: Playwright 页面对象，用于获取 localStorage 等
+        cookie_dict: Cookie 字典
+    """
 
     def __init__(
         self,
-        timeout=60,  # If the crawl media option is turned on, Douyin’s short videos will require a longer timeout.
+        timeout=60,  # 如果开启爬取媒体选项，抖音短视频需要更长的超时时间
         proxy=None,
         *,
         headers: Dict,
@@ -51,13 +71,24 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         cookie_dict: Dict,
         proxy_ip_pool: Optional["ProxyIpPool"] = None,
     ):
+        """
+        初始化抖音客户端
+        
+        参数:
+            timeout: 请求超时时间（秒），默认60秒
+            proxy: 代理服务器地址
+            headers: HTTP 请求头字典
+            playwright_page: Playwright 页面对象
+            cookie_dict: Cookie 字典
+            proxy_ip_pool: 代理 IP 池对象
+        """
         self.proxy = proxy
         self.timeout = timeout
         self.headers = headers
         self._host = "https://www.douyin.com"
         self.playwright_page = playwright_page
         self.cookie_dict = cookie_dict
-        # Initialize proxy pool (from ProxyRefreshMixin)
+        # 初始化代理池（来自 ProxyRefreshMixin）
         self.init_proxy_pool(proxy_ip_pool)
 
     async def __process_req_params(
@@ -67,11 +98,24 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         headers: Optional[Dict] = None,
         request_method="GET",
     ):
+        """
+        处理请求参数
+        
+        为请求添加公共参数和 a_bogus 签名参数
+        
+        参数:
+            uri: API 接口路径
+            params: 请求参数字典
+            headers: 请求头字典
+            request_method: 请求方法，GET 或 POST
+        """
 
         if not params:
             return
         headers = headers or self.headers
+        # 从页面 localStorage 获取必要的参数
         local_storage: Dict = await self.playwright_page.evaluate("() => window.localStorage")  # type: ignore
+        # 公共请求参数
         common_params = {
             "device_platform": "webapp",
             "aid": "6383",
@@ -103,17 +147,34 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         params.update(common_params)
         query_string = urllib.parse.urlencode(params)
 
-        # 20240927 a-bogus update (JS version)
+        # 20240927 a-bogus 更新（JS 版本）
         post_data = {}
         if request_method == "POST":
             post_data = params
 
+        # 大部分 API 需要 a_bogus 参数进行签名
         if "/v1/web/general/search" not in uri:
             a_bogus = await get_a_bogus(uri, query_string, post_data, headers["User-Agent"], self.playwright_page)
             params["a_bogus"] = a_bogus
 
     async def request(self, method, url, **kwargs):
-        # Check whether the proxy has expired before each request
+        """
+        发送 HTTP 请求
+        
+        在每次请求前检查代理是否过期，支持自动刷新代理
+        
+        参数:
+            method: HTTP 请求方法
+            url: 请求 URL
+            **kwargs: 其他 httpx 请求参数
+            
+        返回:
+            JSON 响应数据
+            
+        抛出:
+            DataFetchError: 数据获取错误
+        """
+        # 每次请求前检查代理是否过期
         await self._refresh_proxy_if_expired()
 
         async with httpx.AsyncClient(proxy=self.proxy) as client:
@@ -128,18 +189,48 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
 
     async def get(self, uri: str, params: Optional[Dict] = None, headers: Optional[Dict] = None):
         """
-        GET请求
+        发送 GET 请求
+        
+        参数:
+            uri: API 接口路径
+            params: 查询参数字典
+            headers: 请求头字典
+            
+        返回:
+            JSON 响应数据
         """
         await self.__process_req_params(uri, params, headers)
         headers = headers or self.headers
         return await self.request(method="GET", url=f"{self._host}{uri}", params=params, headers=headers)
 
     async def post(self, uri: str, data: dict, headers: Optional[Dict] = None):
+        """
+        发送 POST 请求
+        
+        参数:
+            uri: API 接口路径
+            data: POST 请求数据
+            headers: 请求头字典
+            
+        返回:
+            JSON 响应数据
+        """
         await self.__process_req_params(uri, data, headers)
         headers = headers or self.headers
         return await self.request(method="POST", url=f"{self._host}{uri}", data=data, headers=headers)
 
     async def pong(self, browser_context: BrowserContext) -> bool:
+        """
+        检查登录状态
+        
+        通过 localStorage 和 Cookie 判断用户是否已登录
+        
+        参数:
+            browser_context: Playwright 浏览器上下文
+            
+        返回:
+            True 表示已登录，False 表示未登录
+        """
         local_storage = await self.playwright_page.evaluate("() => window.localStorage")
         if local_storage.get("HasUserLogin", "") == "1":
             return True
@@ -148,6 +239,14 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         return cookie_dict.get("LOGIN_STATUS") == "1"
 
     async def update_cookies(self, browser_context: BrowserContext):
+        """
+        更新 Cookie
+        
+        从浏览器上下文获取最新的 Cookie 并更新到客户端
+        
+        参数:
+            browser_context: Playwright 浏览器上下文
+        """
         cookie_str, cookie_dict = utils.convert_cookies(await browser_context.cookies())
         self.headers["Cookie"] = cookie_str
         self.cookie_dict = cookie_dict
@@ -162,14 +261,20 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         search_id: str = "",
     ):
         """
-        DouYin Web Search API
-        :param keyword:
-        :param offset:
-        :param search_channel:
-        :param sort_type:
-        :param publish_time: ·
-        :param search_id: ·
-        :return:
+        关键词搜索
+        
+        调用抖音搜索 API 获取搜索结果
+        
+        参数:
+            keyword: 搜索关键词
+            offset: 分页偏移量
+            search_channel: 搜索频道类型
+            sort_type: 排序类型
+            publish_time: 发布时间类型
+            search_id: 搜索 ID
+            
+        返回:
+            搜索结果 JSON 数据
         """
         query_params = {
             'search_channel': search_channel.value,
@@ -196,9 +301,15 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
 
     async def get_video_by_id(self, aweme_id: str) -> Any:
         """
-        DouYin Video Detail API
-        :param aweme_id:
-        :return:
+        获取视频详情
+        
+        通过视频 ID 获取视频详细信息
+        
+        参数:
+            aweme_id: 抖音视频 ID
+            
+        返回:
+            视频详情 JSON 数据
         """
         params = {"aweme_id": aweme_id}
         headers = copy.copy(self.headers)
@@ -207,8 +318,17 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         return res.get("aweme_detail", {})
 
     async def get_aweme_comments(self, aweme_id: str, cursor: int = 0):
-        """get note comments
-
+        """
+        获取视频评论
+        
+        获取指定视频的评论列表
+        
+        参数:
+            aweme_id: 视频 ID
+            cursor: 分页游标
+            
+        返回:
+            评论列表 JSON 数据
         """
         uri = "/aweme/v1/web/comment/list/"
         params = {"aweme_id": aweme_id, "cursor": cursor, "count": 20, "item_type": 0}
@@ -220,7 +340,17 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
 
     async def get_sub_comments(self, aweme_id: str, comment_id: str, cursor: int = 0):
         """
-            获取子评论
+        获取子评论（回复评论）
+        
+        获取指定评论的回复列表
+        
+        参数:
+            aweme_id: 视频 ID
+            comment_id: 评论 ID
+            cursor: 分页游标
+            
+        返回:
+            子评论列表 JSON 数据
         """
         uri = "/aweme/v1/web/comment/list/reply/"
         params = {
@@ -296,6 +426,17 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         return result
 
     async def get_user_info(self, sec_user_id: str):
+        """
+        获取用户信息
+        
+        通过用户 sec_user_id 获取用户详细信息
+        
+        参数:
+            sec_user_id: 抖音用户唯一标识
+            
+        返回:
+            用户信息 JSON 数据
+        """
         uri = "/aweme/v1/web/user/profile/other/"
         params = {
             "sec_user_id": sec_user_id,
@@ -305,6 +446,18 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         return await self.get(uri, params)
 
     async def get_user_aweme_posts(self, sec_user_id: str, max_cursor: str = "") -> Dict:
+        """
+        获取用户发布的视频列表
+        
+        获取指定用户的视频作品列表
+        
+        参数:
+            sec_user_id: 抖音用户唯一标识
+            max_cursor: 分页游标，用于加载更多
+            
+        返回:
+            视频列表 JSON 数据
+        """
         uri = "/aweme/v1/web/aweme/post/"
         params = {
             "sec_user_id": sec_user_id,
@@ -318,6 +471,18 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         return await self.get(uri, params)
 
     async def get_all_user_aweme_posts(self, sec_user_id: str, callback: Optional[Callable] = None):
+        """
+        获取用户所有视频
+        
+        循环获取用户发布的所有视频，支持分页
+        
+        参数:
+            sec_user_id: 抖音用户唯一标识
+            callback: 回调函数，每页视频处理后调用
+            
+        返回:
+            所有视频列表
+        """
         posts_has_more = 1
         max_cursor = ""
         result = []
@@ -333,6 +498,17 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
         return result
 
     async def get_aweme_media(self, url: str) -> Union[bytes, None]:
+        """
+        获取媒体内容
+        
+        下载视频或图片的二进制内容
+        
+        参数:
+            url: 媒体文件 URL
+            
+        返回:
+            媒体二进制内容，失败返回 None
+        """
         async with httpx.AsyncClient(proxy=self.proxy) as client:
             try:
                 response = await client.request("GET", url, timeout=self.timeout, follow_redirects=True)
@@ -342,24 +518,28 @@ class DouYinClient(AbstractApiClient, ProxyRefreshMixin):
                     return None
                 else:
                     return response.content
-            except httpx.HTTPError as exc:  # some wrong when call httpx.request method, such as connection error, client error, server error or response status code is not 2xx
-                utils.logger.error(f"[DouYinClient.get_aweme_media] {exc.__class__.__name__} for {exc.request.url} - {exc}")  # Keep the original exception type name for developers to debug
+            except httpx.HTTPError as exc:
+                utils.logger.error(f"[DouYinClient.get_aweme_media] {exc.__class__.__name__} for {exc.request.url} - {exc}")
                 return None
 
     async def resolve_short_url(self, short_url: str) -> str:
         """
-        解析抖音短链接,获取重定向后的真实URL
-        Args:
-            short_url: 短链接,如 https://v.douyin.com/iF12345ABC/
-        Returns:
-            重定向后的完整URL
+        解析抖音短链接
+        
+        获取重定向后的真实 URL
+        
+        参数:
+            short_url: 抖音短链接，如 https://v.douyin.com/iF12345ABC/
+            
+        返回:
+            重定向后的完整 URL，如果是短链接返回空字符串
         """
         async with httpx.AsyncClient(proxy=self.proxy, follow_redirects=False) as client:
             try:
                 utils.logger.info(f"[DouYinClient.resolve_short_url] Resolving short URL: {short_url}")
                 response = await client.get(short_url, timeout=10)
 
-                # Short links usually return a 302 redirect
+                # 短链接通常返回 302 重定向
                 if response.status_code in [301, 302, 303, 307, 308]:
                     redirect_url = response.headers.get("Location", "")
                     utils.logger.info(f"[DouYinClient.resolve_short_url] Resolved to: {redirect_url}")

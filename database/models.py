@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2025 relakkes@gmail.com
 #
-# This file is part of MediaCrawler project.
-# Repository: https://github.com/NanmiCoder/MediaCrawler/blob/main/database/models.py
-# GitHub: https://github.com/NanmiCoder
-# Licensed under NON-COMMERCIAL LEARNING LICENSE 1.1
+# 本文件是 MediaCrawler 项目的一部分。
+# 仓库地址：https://github.com/NanmiCoder/MediaCrawler/blob/main/database/models.py
+# GitHub：https://github.com/NanmiCoder
+# 基于 NON-COMMERCIAL LEARNING LICENSE 1.1 许可证授权
 #
 # 声明：本代码仅供学习和研究目的使用。使用者应遵守以下原则：
 # 1. 不得用于任何商业用途。
@@ -16,13 +16,35 @@
 # 详细许可条款请参阅项目根目录下的LICENSE文件。
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
+"""
+数据库 ORM 模型定义模块
+
+本模块定义了所有支持的社交媒体平台的数据库表结构
+使用 SQLAlchemy ORM 框架进行数据库建模
+
+支持的平台:
+    - 哔哩哔哩 (Bilibili): 视频、评论、UP主信息、粉丝关系、动态
+    - 抖音 (Douyin): 作品、评论、创作者信息
+    - 快手 (Kuaishou): 视频、评论
+    - 微博 (Weibo): 笔记、评论、创作者信息
+    - 小红书 (Xhs): 笔记、评论、创作者信息
+    - 百度贴吧 (Tieba): 帖子、评论、创作者信息
+    - 知乎 (Zhihu): 内容、评论、创作者信息
+"""
+
 from sqlalchemy import create_engine, Column, Integer, Text, String, BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+# 创建 ORM 基类
+# 所有数据库模型都需要继承这个基类
 Base = declarative_base()
 
+
+# ==================== 哔哩哔哩相关模型 ====================
+
 class BilibiliVideo(Base):
+    """哔哩哔哩视频表"""
     __tablename__ = 'bilibili_video'
     id = Column(Integer, primary_key=True, comment='主键ID')
     video_id = Column(BigInteger, nullable=False, index=True, unique=True, comment='视频ID')
@@ -47,7 +69,9 @@ class BilibiliVideo(Base):
     video_cover_url = Column(Text, comment='视频封面URL')
     source_keyword = Column(Text, default='', comment='来源关键词')
 
+
 class BilibiliVideoComment(Base):
+    """哔哩哔哩视频评论表"""
     __tablename__ = 'bilibili_video_comment'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -65,7 +89,9 @@ class BilibiliVideoComment(Base):
     parent_comment_id = Column(String(255), comment='父评论ID')
     like_count = Column(Text, default='0', comment='点赞数')
 
+
 class BilibiliUpInfo(Base):
+    """哔哩哔哩UP主信息表"""
     __tablename__ = 'bilibili_up_info'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(BigInteger, index=True, comment='用户ID')
@@ -80,7 +106,9 @@ class BilibiliUpInfo(Base):
     user_rank = Column(Integer, comment='用户等级')
     is_official = Column(Integer, comment='是否官方认证')
 
+
 class BilibiliContactInfo(Base):
+    """哔哩哔哩UP主与粉丝关系表"""
     __tablename__ = 'bilibili_contact_info'
     id = Column(Integer, primary_key=True, comment='主键ID')
     up_id = Column(BigInteger, index=True, comment='UP主ID')
@@ -94,7 +122,9 @@ class BilibiliContactInfo(Base):
     add_ts = Column(BigInteger, comment='添加时间戳')
     last_modify_ts = Column(BigInteger, comment='最后修改时间戳')
 
+
 class BilibiliUpDynamic(Base):
+    """哔哩哔哩UP主动态表"""
     __tablename__ = 'bilibili_up_dynamic'
     id = Column(Integer, primary_key=True, comment='主键ID')
     dynamic_id = Column(BigInteger, index=True, comment='动态ID')
@@ -109,7 +139,11 @@ class BilibiliUpDynamic(Base):
     add_ts = Column(BigInteger, comment='添加时间戳')
     last_modify_ts = Column(BigInteger, comment='最后修改时间戳')
 
+
+# ==================== 抖音相关模型 ====================
+
 class DouyinAweme(Base):
+    """抖音作品表"""
     __tablename__ = 'douyin_aweme'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -138,7 +172,9 @@ class DouyinAweme(Base):
     note_download_url = Column(Text, comment='笔记下载URL')
     source_keyword = Column(Text, default='', comment='来源关键词')
 
+
 class DouyinAwemeComment(Base):
+    """抖音作品评论表"""
     __tablename__ = 'douyin_aweme_comment'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -160,7 +196,9 @@ class DouyinAwemeComment(Base):
     like_count = Column(Text, default='0', comment='点赞数')
     pictures = Column(Text, default='', comment='图片')
 
+
 class DyCreator(Base):
+    """抖音创作者信息表"""
     __tablename__ = 'dy_creator'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -176,7 +214,11 @@ class DyCreator(Base):
     interaction = Column(Text, comment='互动数')
     videos_count = Column(String(255), comment='视频数量')
 
+
+# ==================== 快手相关模型 ====================
+
 class KuaishouVideo(Base):
+    """快手视频表"""
     __tablename__ = 'kuaishou_video'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(64), comment='用户ID')
@@ -196,7 +238,9 @@ class KuaishouVideo(Base):
     video_play_url = Column(Text, comment='视频播放URL')
     source_keyword = Column(Text, default='', comment='来源关键词')
 
+
 class KuaishouVideoComment(Base):
+    """快手视频评论表"""
     __tablename__ = 'kuaishou_video_comment'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(Text, comment='用户ID')
@@ -210,7 +254,11 @@ class KuaishouVideoComment(Base):
     create_time = Column(BigInteger, comment='创建时间戳')
     sub_comment_count = Column(Text, comment='子评论数')
 
+
+# ==================== 微博相关模型 ====================
+
 class WeiboNote(Base):
+    """微博笔记表"""
     __tablename__ = 'weibo_note'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -231,7 +279,9 @@ class WeiboNote(Base):
     note_url = Column(Text, comment='笔记URL')
     source_keyword = Column(Text, default='', comment='来源关键词')
 
+
 class WeiboNoteComment(Base):
+    """微博笔记评论表"""
     __tablename__ = 'weibo_note_comment'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -251,7 +301,9 @@ class WeiboNoteComment(Base):
     sub_comment_count = Column(Text, comment='子评论数')
     parent_comment_id = Column(String(255), comment='父评论ID')
 
+
 class WeiboCreator(Base):
+    """微博创作者信息表"""
     __tablename__ = 'weibo_creator'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -266,7 +318,11 @@ class WeiboCreator(Base):
     fans = Column(Text, comment='粉丝数')
     tag_list = Column(Text, comment='标签列表')
 
+
+# ==================== 小红书相关模型 ====================
+
 class XhsCreator(Base):
+    """小红书创作者信息表"""
     __tablename__ = 'xhs_creator'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -282,7 +338,9 @@ class XhsCreator(Base):
     interaction = Column(Text, comment='互动数')
     tag_list = Column(Text, comment='标签列表')
 
+
 class XhsNote(Base):
+    """小红书笔记表"""
     __tablename__ = 'xhs_note'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -308,7 +366,9 @@ class XhsNote(Base):
     source_keyword = Column(Text, default='', comment='来源关键词')
     xsec_token = Column(Text, comment='Xsec Token')
 
+
 class XhsNoteComment(Base):
+    """小红书笔记评论表"""
     __tablename__ = 'xhs_note_comment'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(255), comment='用户ID')
@@ -326,7 +386,11 @@ class XhsNoteComment(Base):
     parent_comment_id = Column(String(255), comment='父评论ID')
     like_count = Column(Text, comment='点赞数')
 
+
+# ==================== 百度贴吧相关模型 ====================
+
 class TiebaNote(Base):
+    """百度贴吧帖子表"""
     __tablename__ = 'tieba_note'
     id = Column(Integer, primary_key=True, comment='主键ID')
     note_id = Column(String(644), index=True, comment='笔记ID')
@@ -347,7 +411,9 @@ class TiebaNote(Base):
     last_modify_ts = Column(BigInteger, comment='最后修改时间戳')
     source_keyword = Column(Text, default='', comment='来源关键词')
 
+
 class TiebaComment(Base):
+    """百度贴吧评论表"""
     __tablename__ = 'tieba_comment'
     id = Column(Integer, primary_key=True, comment='主键ID')
     comment_id = Column(String(255), index=True, comment='评论ID')
@@ -367,7 +433,9 @@ class TiebaComment(Base):
     add_ts = Column(BigInteger, comment='添加时间戳')
     last_modify_ts = Column(BigInteger, comment='最后修改时间戳')
 
+
 class TiebaCreator(Base):
+    """百度贴吧创作者信息表"""
     __tablename__ = 'tieba_creator'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(64), comment='用户ID')
@@ -382,7 +450,11 @@ class TiebaCreator(Base):
     fans = Column(Text, comment='粉丝数')
     registration_duration = Column(Text, comment='注册时长')
 
+
+# ==================== 知乎相关模型 ====================
+
 class ZhihuContent(Base):
+    """知乎内容表（回答、文章等）"""
     __tablename__ = 'zhihu_content'
     id = Column(Integer, primary_key=True, comment='主键ID')
     content_id = Column(String(64), index=True, comment='内容ID')
@@ -405,12 +477,9 @@ class ZhihuContent(Base):
     add_ts = Column(BigInteger, comment='添加时间戳')
     last_modify_ts = Column(BigInteger, comment='最后修改时间戳')
 
-    # persist-1<persist1@126.com>
-    # Reason: Fixed ORM model definition error, ensuring consistency with database table structure.
-    # Side effects: None
-    # Rollback strategy: Restore this line
 
 class ZhihuComment(Base):
+    """知乎评论表"""
     __tablename__ = 'zhihu_comment'
     id = Column(Integer, primary_key=True, comment='主键ID')
     comment_id = Column(String(64), index=True, comment='评论ID')
@@ -430,7 +499,9 @@ class ZhihuComment(Base):
     add_ts = Column(BigInteger, comment='添加时间戳')
     last_modify_ts = Column(BigInteger, comment='最后修改时间戳')
 
+
 class ZhihuCreator(Base):
+    """知乎创作者信息表"""
     __tablename__ = 'zhihu_creator'
     id = Column(Integer, primary_key=True, comment='主键ID')
     user_id = Column(String(64), unique=True, index=True, comment='用户ID')

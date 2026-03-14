@@ -30,7 +30,7 @@ from tools.crawler_util import extract_url_params_to_dict
 
 def sign(a1="", b1="", x_s="", x_t=""):
     """
-    takes in a URI (uniform resource identifier), an optional data dictionary, and an optional ctime parameter. It returns a dictionary containing two keys: "x-s" and "x-t".
+    接收一个 URI（统一资源标识符）、一个可选的数据字典和一个可选的 ctime 参数。返回一个包含两个键的字典："x-s" 和 "x-t"。
     """
     common = {
         "s0": 3,  # getPlatformCode
@@ -297,16 +297,16 @@ def get_img_urls_by_trace_id(trace_id: str, format_type: str = "png"):
 
 
 def get_trace_id(img_url: str):
-    # Browser-uploaded images have an additional /spectrum/ path
+    # 浏览器上传的图片有一个额外的 /spectrum/ 路径
     return f"spectrum/{img_url.split('/')[-1]}" if img_url.find("spectrum") != -1 else img_url.split("/")[-1]
 
 
 def parse_note_info_from_note_url(url: str) -> NoteUrlInfo:
     """
-    Parse note information from Xiaohongshu note URL
-    Args:
+    从小红书笔记 URL 解析笔记信息
+    参数:
         url: "https://www.xiaohongshu.com/explore/66fad51c000000001b0224b8?xsec_token=AB3rO-QopW5sgrJ41GwN01WCXh6yWPxjSoFI9D5JIMgKw=&xsec_source=pc_search"
-    Returns:
+    返回:
 
     """
     note_id = url.split("/")[-1].split("?")[0]
@@ -318,27 +318,27 @@ def parse_note_info_from_note_url(url: str) -> NoteUrlInfo:
 
 def parse_creator_info_from_url(url: str) -> CreatorUrlInfo:
     """
-    Parse creator information from Xiaohongshu creator homepage URL
-    Supports the following formats:
-    1. Full URL: "https://www.xiaohongshu.com/user/profile/5eb8e1d400000000010075ae?xsec_token=AB1nWBKCo1vE2HEkfoJUOi5B6BE5n7wVrbdpHoWIj5xHw=&xsec_source=pc_feed"
-    2. Pure ID: "5eb8e1d400000000010075ae"
+    从小红书创作者主页 URL 解析创作者信息
+    支持以下格式：
+    1. 完整 URL: "https://www.xiaohongshu.com/user/profile/5eb8e1d400000000010075ae?xsec_token=AB1nWBKCo1vE2HEkfoJUOi5B6BE5n7wVrbdpHoWIj5xHw=&xsec_source=pc_feed"
+    2. 纯 ID: "5eb8e1d400000000010075ae"
 
-    Args:
-        url: Creator homepage URL or user_id
-    Returns:
-        CreatorUrlInfo: Object containing user_id, xsec_token, xsec_source
+    参数:
+        url: 创作者主页 URL 或 user_id
+    返回:
+        CreatorUrlInfo: 包含 user_id、xsec_token、xsec_source 的对象
     """
-    # If it's a pure ID format (24 hexadecimal characters), return directly
+    # 如果是纯 ID 格式（24 个十六进制字符），直接返回
     if len(url) == 24 and all(c in "0123456789abcdef" for c in url):
         return CreatorUrlInfo(user_id=url, xsec_token="", xsec_source="")
 
-    # Extract user_id from URL: /user/profile/xxx
+    # 从 URL 中提取 user_id：/user/profile/xxx
     import re
     user_pattern = r'/user/profile/([^/?]+)'
     match = re.search(user_pattern, url)
     if match:
         user_id = match.group(1)
-        # Extract xsec_token and xsec_source parameters
+        # 提取 xsec_token 和 xsec_source 参数
         params = extract_url_params_to_dict(url)
         xsec_token = params.get("xsec_token", "")
         xsec_source = params.get("xsec_source", "")

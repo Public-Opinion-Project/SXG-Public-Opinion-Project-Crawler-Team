@@ -18,26 +18,45 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 
+"""
+抖音字段枚举模块
+
+定义抖音搜索和筛选相关的枚举类型
+包括搜索频道、排序方式、发布时间等
+"""
+
 from enum import Enum
 
 
 class SearchChannelType(Enum):
-    """search channel type"""
-    GENERAL = "aweme_general"  # General
-    VIDEO = "aweme_video_web"  # Video
-    USER = "aweme_user_web"  # User
-    LIVE = "aweme_live"  # Live
+    """
+    搜索频道类型
+    
+    用于指定搜索结果的类型
+    """
+    GENERAL = "aweme_general"  # 综合
+    VIDEO = "aweme_video_web"  # 视频
+    USER = "aweme_user_web"    # 用户
+    LIVE = "aweme_live"        # 直播
 
 
 class SearchSortType(Enum):
-    """search sort type"""
-    GENERAL = 0  # Comprehensive sorting
-    MOST_LIKE = 1  # Most likes
-    LATEST = 2  # Latest published
+    """
+    搜索排序类型
+    
+    用于指定搜索结果的排序方式
+    """
+    GENERAL = 0   # 综合排序
+    MOST_LIKE = 1 # 最多点赞
+    LATEST = 2    # 最新发布
 
 class PublishTimeType(Enum):
-    """publish time type"""
-    UNLIMITED = 0  # Unlimited
-    ONE_DAY = 1  # Within one day
-    ONE_WEEK = 7  # Within one week
-    SIX_MONTH = 180  # Within six months
+    """
+    发布时间类型
+    
+    用于筛选指定时间范围内发布的视频
+    """
+    UNLIMITED = 0   # 不限
+    ONE_DAY = 1     # 一天内
+    ONE_WEEK = 7    # 一周内
+    SIX_MONTH = 180 # 半年内
