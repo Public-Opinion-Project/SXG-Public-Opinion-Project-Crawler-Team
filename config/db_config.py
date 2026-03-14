@@ -20,7 +20,7 @@
 
 import os
 
-# mysql config
+# MySQL数据库配置
 MYSQL_DB_PWD = os.getenv("MYSQL_DB_PWD", "root")
 MYSQL_DB_USER = os.getenv("MYSQL_DB_USER", "root")
 MYSQL_DB_HOST = os.getenv("MYSQL_DB_HOST", "localhost")
@@ -36,24 +36,24 @@ mysql_db_config = {
 }
 
 
-# redis config
-REDIS_DB_HOST = os.getenv("REDIS_DB_HOST", "127.0.0.1")  # your redis host
-REDIS_DB_PWD = os.getenv("REDIS_DB_PWD", "123456")  # your redis password
-REDIS_DB_PORT = os.getenv("REDIS_DB_PORT", 6379)  # your redis port
-REDIS_DB_NUM = os.getenv("REDIS_DB_NUM", 0)  # your redis db num
+# Redis数据库配置
+REDIS_DB_HOST = os.getenv("REDIS_DB_HOST", "127.0.0.1")  # 你的Redis主机地址
+REDIS_DB_PWD = os.getenv("REDIS_DB_PWD", "123456")  # 你的Redis密码
+REDIS_DB_PORT = os.getenv("REDIS_DB_PORT", 6379)  # 你的Redis端口
+REDIS_DB_NUM = os.getenv("REDIS_DB_NUM", 0)  # 你的Redis数据库编号
 
-# cache type
+# 缓存类型
 CACHE_TYPE_REDIS = "redis"
 CACHE_TYPE_MEMORY = "memory"
 
-# sqlite config
+# SQLite数据库配置
 SQLITE_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", "sqlite_tables.db")
 
 sqlite_db_config = {
     "db_path": SQLITE_DB_PATH
 }
 
-# mongodb config
+# MongoDB数据库配置
 MONGODB_HOST = os.getenv("MONGODB_HOST", "localhost")
 MONGODB_PORT = os.getenv("MONGODB_PORT", 27017)
 MONGODB_USER = os.getenv("MONGODB_USER", "")
@@ -68,7 +68,7 @@ mongodb_config = {
     "db_name": MONGODB_DB_NAME,
 }
 
-# postgres config
+# PostgreSQL数据库配置
 POSTGRES_DB_PWD = os.getenv("POSTGRES_DB_PWD", "123456")
 POSTGRES_DB_USER = os.getenv("POSTGRES_DB_USER", "postgres")
 POSTGRES_DB_HOST = os.getenv("POSTGRES_DB_HOST", "localhost")
