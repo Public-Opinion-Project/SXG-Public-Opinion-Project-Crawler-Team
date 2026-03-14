@@ -26,38 +26,38 @@ router = APIRouter(prefix="/crawler", tags=["crawler"])
 
 @router.post("/start")
 async def start_crawler(request: CrawlerStartRequest):
-    """Start crawler task"""
+    """启动爬虫任务"""
     success = await crawler_manager.start(request)
     if not success:
-        # Handle concurrent/duplicate requests: if process is already running, return 400 instead of 500
+        # 处理并发/重复请求：如果进程已在运行，返回400而不是500
         if crawler_manager.process and crawler_manager.process.poll() is None:
-            raise HTTPException(status_code=400, detail="Crawler is already running")
-        raise HTTPException(status_code=500, detail="Failed to start crawler")
+            raise HTTPException(status_code=400, detail="爬虫正在运行中")
+        raise HTTPException(status_code=500, detail="启动爬虫失败")
 
-    return {"status": "ok", "message": "Crawler started successfully"}
+    return {"status": "ok", "message": "爬虫启动成功"}
 
 
 @router.post("/stop")
 async def stop_crawler():
-    """Stop crawler task"""
+    """停止爬虫任务"""
     success = await crawler_manager.stop()
     if not success:
-        # Handle concurrent/duplicate requests: if process already exited/doesn't exist, return 400 instead of 500
+        # 处理并发/重复请求：如果进程已退出/不存在，返回400而不是500
         if not crawler_manager.process or crawler_manager.process.poll() is not None:
-            raise HTTPException(status_code=400, detail="No crawler is running")
-        raise HTTPException(status_code=500, detail="Failed to stop crawler")
+            raise HTTPException(status_code=400, detail="没有正在运行的爬虫")
+        raise HTTPException(status_code=500, detail="停止爬虫失败")
 
-    return {"status": "ok", "message": "Crawler stopped successfully"}
+    return {"status": "ok", "message": "爬虫停止成功"}
 
 
 @router.get("/status", response_model=CrawlerStatusResponse)
 async def get_crawler_status():
-    """Get crawler status"""
+    """获取爬虫状态"""
     return crawler_manager.get_status()
 
 
 @router.get("/logs")
 async def get_logs(limit: int = 100):
-    """Get recent logs"""
+    """获取最近日志"""
     logs = crawler_manager.logs[-limit:] if limit > 0 else crawler_manager.logs
     return {"logs": [log.model_dump() for log in logs]}

@@ -28,7 +28,7 @@ from ..schemas import CrawlerStartRequest, LogEntry
 
 
 class CrawlerManager:
-    """Crawler process manager"""
+    """爬虫进程管理器"""
 
     def __init__(self):
         self._lock = asyncio.Lock()
@@ -39,9 +39,9 @@ class CrawlerManager:
         self._log_id = 0
         self._logs: List[LogEntry] = []
         self._read_task: Optional[asyncio.Task] = None
-        # Project root directory
+        # 项目根目录
         self._project_root = Path(__file__).parent.parent.parent
-        # Log queue - for pushing to WebSocket
+        # 日志队列 - 用于推送到WebSocket
         self._log_queue: Optional[asyncio.Queue] = None
 
     @property
@@ -49,13 +49,13 @@ class CrawlerManager:
         return self._logs
 
     def get_log_queue(self) -> asyncio.Queue:
-        """Get or create log queue"""
+        """获取或创建日志队列"""
         if self._log_queue is None:
             self._log_queue = asyncio.Queue()
         return self._log_queue
 
     def _create_log_entry(self, message: str, level: str = "info") -> LogEntry:
-        """Create log entry"""
+        """创建日志条目"""
         self._log_id += 1
         entry = LogEntry(
             id=self._log_id,
@@ -64,13 +64,13 @@ class CrawlerManager:
             message=message
         )
         self._logs.append(entry)
-        # Keep last 500 logs
+        # 保留最近500条日志
         if len(self._logs) > 500:
             self._logs = self._logs[-500:]
         return entry
 
     async def _push_log(self, entry: LogEntry):
-        """Push log to queue"""
+        """推送日志到队列"""
         if self._log_queue is not None:
             try:
                 self._log_queue.put_nowait(entry)
@@ -78,7 +78,7 @@ class CrawlerManager:
                 pass
 
     def _parse_log_level(self, line: str) -> str:
-        """Parse log level"""
+        """解析日志级别"""
         line_upper = line.upper()
         if "ERROR" in line_upper or "FAILED" in line_upper:
             return "error"
@@ -91,16 +91,16 @@ class CrawlerManager:
         return "info"
 
     async def start(self, config: CrawlerStartRequest) -> bool:
-        """Start crawler process"""
+        """启动爬虫进程"""
         async with self._lock:
             if self.process and self.process.poll() is None:
                 return False
 
-            # Clear old logs
+            # 清除旧日志
             self._logs = []
             self._log_id = 0
 
-            # Clear pending queue (don't replace object to avoid WebSocket broadcast coroutine holding old queue reference)
+            # 清除待处理队列（不替换对象以避免WebSocket广播协程持有旧队列引用）
             if self._log_queue is None:
                 self._log_queue = asyncio.Queue()
             else:
@@ -110,15 +110,15 @@ class CrawlerManager:
                 except asyncio.QueueEmpty:
                     pass
 
-            # Build command line arguments
+            # 构建命令行参数
             cmd = self._build_command(config)
 
-            # Log start information
-            entry = self._create_log_entry(f"Starting crawler: {' '.join(cmd)}", "info")
+            # 记录启动信息
+            entry = self._create_log_entry(f"正在启动爬虫：{' '.join(cmd)}", "info")
             await self._push_log(entry)
 
             try:
-                # Start subprocess
+                # 启动子进程
                 self.process = subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
@@ -135,57 +135,57 @@ class CrawlerManager:
                 self.current_config = config
 
                 entry = self._create_log_entry(
-                    f"Crawler started on platform: {config.platform.value}, type: {config.crawler_type.value}",
+                    f"爬虫已在平台启动：{config.platform.value}，类型：{config.crawler_type.value}",
                     "success"
                 )
                 await self._push_log(entry)
 
-                # Start log reading task
+                # 启动日志读取任务
                 self._read_task = asyncio.create_task(self._read_output())
 
                 return True
             except Exception as e:
                 self.status = "error"
-                entry = self._create_log_entry(f"Failed to start crawler: {str(e)}", "error")
+                entry = self._create_log_entry(f"启动爬虫失败：{str(e)}", "error")
                 await self._push_log(entry)
                 return False
 
     async def stop(self) -> bool:
-        """Stop crawler process"""
+        """停止爬虫进程"""
         async with self._lock:
             if not self.process or self.process.poll() is not None:
                 return False
 
             self.status = "stopping"
-            entry = self._create_log_entry("Sending SIGTERM to crawler process...", "warning")
+            entry = self._create_log_entry("正在向爬虫进程发送SIGTERM...", "warning")
             await self._push_log(entry)
 
             try:
                 self.process.send_signal(signal.SIGTERM)
 
-                # Wait for graceful exit (up to 15 seconds)
+                # 等待优雅退出（最多15秒）
                 for _ in range(30):
                     if self.process.poll() is not None:
                         break
                     await asyncio.sleep(0.5)
 
-                # If still not exited, force kill
+                # 如果仍未退出，强制终止
                 if self.process.poll() is None:
-                    entry = self._create_log_entry("Process not responding, sending SIGKILL...", "warning")
+                    entry = self._create_log_entry("进程无响应，发送SIGKILL...", "warning")
                     await self._push_log(entry)
                     self.process.kill()
 
-                entry = self._create_log_entry("Crawler process terminated", "info")
+                entry = self._create_log_entry("爬虫进程已终止", "info")
                 await self._push_log(entry)
 
             except Exception as e:
-                entry = self._create_log_entry(f"Error stopping crawler: {str(e)}", "error")
+                entry = self._create_log_entry(f"停止爬虫时出错：{str(e)}", "error")
                 await self._push_log(entry)
 
             self.status = "idle"
             self.current_config = None
 
-            # Cancel log reading task
+            # 取消日志读取任务
             if self._read_task:
                 self._read_task.cancel()
                 self._read_task = None
@@ -193,7 +193,7 @@ class CrawlerManager:
             return True
 
     def get_status(self) -> dict:
-        """Get current status"""
+        """获取当前状态"""
         return {
             "status": self.status,
             "platform": self.current_config.platform.value if self.current_config else None,
@@ -203,7 +203,7 @@ class CrawlerManager:
         }
 
     def _build_command(self, config: CrawlerStartRequest) -> list:
-        """Build main.py command line arguments"""
+        """构建main.py命令行参数"""
         cmd = ["uv", "run", "python", "main.py"]
 
         cmd.extend(["--platform", config.platform.value])
@@ -211,7 +211,7 @@ class CrawlerManager:
         cmd.extend(["--type", config.crawler_type.value])
         cmd.extend(["--save_data_option", config.save_option.value])
 
-        # Pass different arguments based on crawler type
+        # 根据爬虫类型传递不同参数
         if config.crawler_type.value == "search" and config.keywords:
             cmd.extend(["--keywords", config.keywords])
         elif config.crawler_type.value == "detail" and config.specified_ids:
@@ -233,12 +233,12 @@ class CrawlerManager:
         return cmd
 
     async def _read_output(self):
-        """Asynchronously read process output"""
+        """异步读取进程输出"""
         loop = asyncio.get_event_loop()
 
         try:
             while self.process and self.process.poll() is None:
-                # Read a line in thread pool
+                # 在线程池中读取一行
                 line = await loop.run_in_executor(
                     None, self.process.stdout.readline
                 )
@@ -249,7 +249,7 @@ class CrawlerManager:
                         entry = self._create_log_entry(line, level)
                         await self._push_log(entry)
 
-            # Read remaining output
+            # 读取剩余输出
             if self.process and self.process.stdout:
                 remaining = await loop.run_in_executor(
                     None, self.process.stdout.read
@@ -261,22 +261,22 @@ class CrawlerManager:
                             entry = self._create_log_entry(line.strip(), level)
                             await self._push_log(entry)
 
-            # Process ended
+            # 进程已结束
             if self.status == "running":
                 exit_code = self.process.returncode if self.process else -1
                 if exit_code == 0:
-                    entry = self._create_log_entry("Crawler completed successfully", "success")
+                    entry = self._create_log_entry("爬虫成功完成", "success")
                 else:
-                    entry = self._create_log_entry(f"Crawler exited with code: {exit_code}", "warning")
+                    entry = self._create_log_entry(f"爬虫退出，退出代码：{exit_code}", "warning")
                 await self._push_log(entry)
                 self.status = "idle"
 
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            entry = self._create_log_entry(f"Error reading output: {str(e)}", "error")
+            entry = self._create_log_entry(f"读取输出时出错：{str(e)}", "error")
             await self._push_log(entry)
 
 
-# Global singleton
+# 全局单例
 crawler_manager = CrawlerManager()
