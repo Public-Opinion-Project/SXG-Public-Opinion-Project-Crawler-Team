@@ -27,8 +27,8 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 """
-Excel Store Base Implementation
-Provides Excel export functionality for crawled data with formatted sheets
+Excel存储基础实现
+提供爬取数据的Excel导出功能,带有格式化的表格
 """
 
 import threading
@@ -51,26 +51,26 @@ import config
 
 class ExcelStoreBase(AbstractStore):
     """
-    Base class for Excel storage implementation
-    Provides formatted Excel export with multiple sheets for contents, comments, and creators
-    Uses singleton pattern to maintain state across multiple store calls
+    Excel存储实现基类
+    提供带有多工作表(内容、评论、创作者)的格式化Excel导出
+    使用单例模式在多次存储调用中维护状态
     """
 
-    # Class-level singleton management
+    # 类级别单例管理
     _instances: Dict[str, "ExcelStoreBase"] = {}
     _lock = threading.Lock()
 
     @classmethod
     def get_instance(cls, platform: str, crawler_type: str) -> "ExcelStoreBase":
         """
-        Get or create a singleton instance for the given platform and crawler type
+        获取或创建给定平台和爬虫类型的单例实例
 
         Args:
-            platform: Platform name (xhs, dy, ks, etc.)
-            crawler_type: Type of crawler (search, detail, creator)
+            platform: 平台名称 (xhs, dy, ks等)
+            crawler_type: 爬虫类型 (search, detail, creator)
 
         Returns:
-            ExcelStoreBase instance
+            ExcelStoreBase实例
         """
         key = f"{platform}_{crawler_type}"
         with cls._lock:
@@ -81,8 +81,8 @@ class ExcelStoreBase(AbstractStore):
     @classmethod
     def flush_all(cls):
         """
-        Flush all Excel store instances and save to files
-        Should be called at the end of crawler execution
+        刷新所有Excel存储实例并保存到文件
+        应在爬虫执行结束时调用
         """
         with cls._lock:
             for key, instance in cls._instances.items():
@@ -95,50 +95,50 @@ class ExcelStoreBase(AbstractStore):
 
     def __init__(self, platform: str, crawler_type: str = "search"):
         """
-        Initialize Excel store
+        初始化Excel存储
 
         Args:
-            platform: Platform name (xhs, dy, ks, etc.)
-            crawler_type: Type of crawler (search, detail, creator)
+            platform: 平台名称 (xhs, dy, ks等)
+            crawler_type: 爬虫类型 (search, detail, creator)
         """
         if not EXCEL_AVAILABLE:
             raise ImportError(
-                "openpyxl is required for Excel export. "
-                "Install it with: pip install openpyxl"
+                "导出Excel需要openpyxl库。"
+                "请使用: pip install openpyxl"
             )
 
         super().__init__()
         self.platform = platform
         self.crawler_type = crawler_type
 
-        # Create data directory
+        # 创建数据目录
         if config.SAVE_DATA_PATH:
             self.data_dir = Path(config.SAVE_DATA_PATH) / platform
         else:
             self.data_dir = Path("data") / platform
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
-        # Initialize workbook
+        # 初始化工作簿
         self.workbook = openpyxl.Workbook()
-        self.workbook.remove(self.workbook.active)  # Remove default sheet
+        self.workbook.remove(self.workbook.active)  # 移除默认工作表
 
-        # Create sheets
+        # 创建工作表
         self.contents_sheet = self.workbook.create_sheet("Contents")
         self.comments_sheet = self.workbook.create_sheet("Comments")
         self.creators_sheet = self.workbook.create_sheet("Creators")
 
-        # Track if headers are written
+        # 跟踪是否已写入表头
         self.contents_headers_written = False
         self.comments_headers_written = False
         self.creators_headers_written = False
         self.contacts_headers_written = False
         self.dynamics_headers_written = False
 
-        # Optional sheets for platforms that need them (e.g., Bilibili)
+        # 可选工作表,适用于需要的平台(如Bilibili)
         self.contacts_sheet = None
         self.dynamics_sheet = None
 
-        # Generate filename
+        # 生成文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.filename = self.data_dir / f"{platform}_{crawler_type}_{timestamp}.xlsx"
 
@@ -146,11 +146,11 @@ class ExcelStoreBase(AbstractStore):
 
     def _apply_header_style(self, sheet, row_num: int = 1):
         """
-        Apply formatting to header row
+        应用表头行格式
 
         Args:
-            sheet: Worksheet object
-            row_num: Row number for headers (default: 1)
+            sheet: 工作表对象
+            row_num: 表头行号 (默认: 1)
         """
         header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
         header_font = Font(bold=True, color="FFFFFF", size=11)
@@ -170,10 +170,10 @@ class ExcelStoreBase(AbstractStore):
 
     def _auto_adjust_column_width(self, sheet):
         """
-        Auto-adjust column widths based on content
+        根据内容自动调整列宽
 
         Args:
-            sheet: Worksheet object
+            sheet: 工作表对象
         """
         for column in sheet.columns:
             max_length = 0
@@ -186,17 +186,17 @@ class ExcelStoreBase(AbstractStore):
                 except (TypeError, AttributeError):
                     pass
 
-            # Set width with min/max constraints
+            # 设置宽度,有最小/最大限制
             adjusted_width = min(max(max_length + 2, 10), 50)
             sheet.column_dimensions[column_letter].width = adjusted_width
 
     def _write_headers(self, sheet, headers: List[str]):
         """
-        Write headers to sheet
+        向工作表写入表头
 
         Args:
-            sheet: Worksheet object
-            headers: List of header names
+            sheet: 工作表对象
+            headers: 表头名称列表
         """
         for col_num, header in enumerate(headers, 1):
             sheet.cell(row=1, column=col_num, value=header)
@@ -205,19 +205,19 @@ class ExcelStoreBase(AbstractStore):
 
     def _write_row(self, sheet, data: Dict[str, Any], headers: List[str]):
         """
-        Write data row to sheet
+        向工作表写入数据行
 
         Args:
-            sheet: Worksheet object
-            data: Data dictionary
-            headers: List of header names (defines column order)
+            sheet: 工作表对象
+            data: 数据字典
+            headers: 表头名称列表(定义列顺序)
         """
         row_num = sheet.max_row + 1
 
         for col_num, header in enumerate(headers, 1):
             value = data.get(header, "")
 
-            # Handle different data types
+            # 处理不同的数据类型
             if isinstance(value, (list, dict)):
                 value = str(value)
             elif value is None:
@@ -225,7 +225,7 @@ class ExcelStoreBase(AbstractStore):
 
             cell = sheet.cell(row=row_num, column=col_num, value=value)
 
-            # Apply basic formatting
+            # 应用基本格式
             cell.alignment = Alignment(vertical="top", wrap_text=True)
             cell.border = Border(
                 left=Side(style='thin'),
@@ -236,32 +236,32 @@ class ExcelStoreBase(AbstractStore):
 
     async def store_content(self, content_item: Dict):
         """
-        Store content data to Excel
+        将内容数据存储到Excel
 
         Args:
-            content_item: Content data dictionary
+            content_item: 内容数据字典
         """
-        # Define headers (customize based on platform)
+        # 定义表头(根据平台自定义)
         headers = list(content_item.keys())
 
-        # Write headers if first time
+        # 首次写入表头
         if not self.contents_headers_written:
             self._write_headers(self.contents_sheet, headers)
             self.contents_headers_written = True
 
-        # Write data row
+        # 写入数据行
         self._write_row(self.contents_sheet, content_item, headers)
 
-        # Get ID from various possible field names
+        # 从各种可能的字段名获取ID
         content_id = content_item.get('note_id') or content_item.get('aweme_id') or content_item.get('video_id') or content_item.get('content_id') or 'N/A'
-        utils.logger.info(f"[ExcelStoreBase] Stored content to Excel: {content_id}")
+        utils.logger.info(f"[ExcelStoreBase] 已存储内容到Excel: {content_id}")
 
     async def store_comment(self, comment_item: Dict):
         """
-        Store comment data to Excel
+        将评论数据存储到Excel
 
         Args:
-            comment_item: Comment data dictionary
+            comment_item: 评论数据字典
         """
         # Define headers
         headers = list(comment_item.keys())
@@ -278,78 +278,78 @@ class ExcelStoreBase(AbstractStore):
 
     async def store_creator(self, creator: Dict):
         """
-        Store creator data to Excel
+        将创作者数据存储到Excel
 
         Args:
-            creator: Creator data dictionary
+            creator: 创作者数据字典
         """
-        # Define headers
+        # 定义表头
         headers = list(creator.keys())
 
-        # Write headers if first time
+        # 首次写入表头
         if not self.creators_headers_written:
             self._write_headers(self.creators_sheet, headers)
             self.creators_headers_written = True
 
-        # Write data row
+        # 写入数据行
         self._write_row(self.creators_sheet, creator, headers)
 
-        utils.logger.info(f"[ExcelStoreBase] Stored creator to Excel: {creator.get('user_id', 'N/A')}")
+        utils.logger.info(f"[ExcelStoreBase] 已存储创作者到Excel: {creator.get('user_id', 'N/A')}")
 
     async def store_contact(self, contact_item: Dict):
         """
-        Store contact data to Excel (for platforms like Bilibili)
+        将联系数据存储到Excel(适用于Bilibili等平台)
 
         Args:
-            contact_item: Contact data dictionary
+            contact_item: 联系数据字典
         """
-        # Create contacts sheet if not exists
+        # 如果不存在则创建联系人工作表
         if self.contacts_sheet is None:
             self.contacts_sheet = self.workbook.create_sheet("Contacts")
 
-        # Define headers
+        # 定义表头
         headers = list(contact_item.keys())
 
-        # Write headers if first time
+        # 首次写入表头
         if not self.contacts_headers_written:
             self._write_headers(self.contacts_sheet, headers)
             self.contacts_headers_written = True
 
-        # Write data row
+        # 写入数据行
         self._write_row(self.contacts_sheet, contact_item, headers)
 
-        utils.logger.info(f"[ExcelStoreBase] Stored contact to Excel: up_id={contact_item.get('up_id', 'N/A')}, fan_id={contact_item.get('fan_id', 'N/A')}")
+        utils.logger.info(f"[ExcelStoreBase] 已存储联系人到Excel: up_id={contact_item.get('up_id', 'N/A')}, fan_id={contact_item.get('fan_id', 'N/A')}")
 
     async def store_dynamic(self, dynamic_item: Dict):
         """
-        Store dynamic data to Excel (for platforms like Bilibili)
+        将动态数据存储到Excel(适用于Bilibili等平台)
 
         Args:
-            dynamic_item: Dynamic data dictionary
+            dynamic_item: 动态数据字典
         """
-        # Create dynamics sheet if not exists
+        # 如果不存在则创建动态工作表
         if self.dynamics_sheet is None:
             self.dynamics_sheet = self.workbook.create_sheet("Dynamics")
 
-        # Define headers
+        # 定义表头
         headers = list(dynamic_item.keys())
 
-        # Write headers if first time
+        # 首次写入表头
         if not self.dynamics_headers_written:
             self._write_headers(self.dynamics_sheet, headers)
             self.dynamics_headers_written = True
 
-        # Write data row
+        # 写入数据行
         self._write_row(self.dynamics_sheet, dynamic_item, headers)
 
-        utils.logger.info(f"[ExcelStoreBase] Stored dynamic to Excel: {dynamic_item.get('dynamic_id', 'N/A')}")
+        utils.logger.info(f"[ExcelStoreBase] 已存储动态到Excel: {dynamic_item.get('dynamic_id', 'N/A')}")
 
     def flush(self):
         """
-        Save workbook to file
+        保存工作簿到文件
         """
         try:
-            # Auto-adjust column widths for all sheets
+            # 为所有工作表自动调整列宽
             self._auto_adjust_column_width(self.contents_sheet)
             self._auto_adjust_column_width(self.comments_sheet)
             self._auto_adjust_column_width(self.creators_sheet)
@@ -358,7 +358,7 @@ class ExcelStoreBase(AbstractStore):
             if self.dynamics_sheet is not None:
                 self._auto_adjust_column_width(self.dynamics_sheet)
 
-            # Remove empty sheets (only header row)
+            # 移除空工作表(仅表头行)
             if self.contents_sheet.max_row == 1:
                 self.workbook.remove(self.contents_sheet)
             if self.comments_sheet.max_row == 1:
@@ -370,14 +370,14 @@ class ExcelStoreBase(AbstractStore):
             if self.dynamics_sheet is not None and self.dynamics_sheet.max_row == 1:
                 self.workbook.remove(self.dynamics_sheet)
 
-            # Check if there are any sheets left
+            # 检查是否还有工作表
             if len(self.workbook.sheetnames) == 0:
-                utils.logger.info(f"[ExcelStoreBase] No data to save, skipping file creation: {self.filename}")
+                utils.logger.info(f"[ExcelStoreBase] 没有数据要保存,跳过文件创建: {self.filename}")
                 return
 
-            # Save workbook
+            # 保存工作簿
             self.workbook.save(self.filename)
-            utils.logger.info(f"[ExcelStoreBase] Excel file saved successfully: {self.filename}")
+            utils.logger.info(f"[ExcelStoreBase] Excel文件保存成功: {self.filename}")
 
         except Exception as e:
             utils.logger.error(f"[ExcelStoreBase] Error saving Excel file: {e}")

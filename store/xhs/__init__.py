@@ -52,11 +52,11 @@ class XhsStoreFactory:
 
 def get_video_url_arr(note_item: Dict) -> List:
     """
-    Get video url array
-    Args:
+    获取视频URL数组
+    参数:
         note_item:
 
-    Returns:
+    返回:
 
     """
     if note_item.get('type') != 'video':
@@ -86,11 +86,11 @@ def get_video_url_arr(note_item: Dict) -> List:
 
 async def update_xhs_note(note_item: Dict):
     """
-    Update Xiaohongshu note
-    Args:
+    更新小红书笔记
+    参数:
         note_item:
 
-    Returns:
+    返回:
 
     """
     note_id = note_item.get("note_id")
@@ -134,12 +134,12 @@ async def update_xhs_note(note_item: Dict):
 
 async def batch_update_xhs_note_comments(note_id: str, comments: List[Dict]):
     """
-    Batch update Xiaohongshu note comments
-    Args:
+    批量更新小红书笔记评论
+    参数:
         note_id:
         comments:
 
-    Returns:
+    返回:
 
     """
     if not comments:
@@ -150,12 +150,12 @@ async def batch_update_xhs_note_comments(note_id: str, comments: List[Dict]):
 
 async def update_xhs_note_comment(note_id: str, comment_item: Dict):
     """
-    Update Xiaohongshu note comment
-    Args:
+    更新小红书笔记评论
+    参数:
         note_id:
         comment_item:
 
-    Returns:
+    返回:
 
     """
     user_info = comment_item.get("user_info", {})
@@ -183,12 +183,12 @@ async def update_xhs_note_comment(note_id: str, comment_item: Dict):
 
 async def save_creator(user_id: str, creator: Dict):
     """
-    Save Xiaohongshu creator
-    Args:
+    保存小红书创作者
+    参数:
         user_id:
         creator:
 
-    Returns:
+    返回:
 
     """
     user_info = creator.get('basicInfo', {})
@@ -232,13 +232,13 @@ async def save_creator(user_id: str, creator: Dict):
 
 async def update_xhs_note_image(note_id, pic_content, extension_file_name):
     """
-    Update Xiaohongshu note image
-    Args:
+    更新小红书笔记图片
+    参数:
         note_id:
         pic_content:
         extension_file_name:
 
-    Returns:
+    返回:
 
     """
 
@@ -247,13 +247,13 @@ async def update_xhs_note_image(note_id, pic_content, extension_file_name):
 
 async def update_xhs_note_video(note_id, video_content, extension_file_name):
     """
-    Update Xiaohongshu note video
-    Args:
+    更新小红书笔记视频
+    参数:
         note_id:
         video_content:
         extension_file_name:
 
-    Returns:
+    返回:
 
     """
 

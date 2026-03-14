@@ -20,7 +20,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : helloteemo
 # @Time    : 2024/7/12 20:01
-# @Desc    : Bilibili media storage
+# @Desc    : Bilibili媒体存储
 import pathlib
 from typing import Dict
 
@@ -40,7 +40,7 @@ class BilibiliVideo(AbstractStoreVideo):
 
     async def store_video(self, video_content_item: Dict):
         """
-        store content
+        存储内容
 
         Args:
             video_content_item:
@@ -52,11 +52,11 @@ class BilibiliVideo(AbstractStoreVideo):
 
     def make_save_file_name(self, aid: str, extension_file_name: str) -> str:
         """
-        make save file name by store type
+        根据存储类型生成保存文件名
 
         Args:
             aid: aid
-            extension_file_name: video filename with extension
+            extension_file_name: 带扩展名的视频文件名
 
         Returns:
 
@@ -65,12 +65,12 @@ class BilibiliVideo(AbstractStoreVideo):
 
     async def save_video(self, aid: int, video_content: str, extension_file_name="mp4"):
         """
-        save video to local
+        保存视频到本地
 
         Args:
             aid: aid
-            video_content: video content
-            extension_file_name: video filename with extension
+            video_content: 视频内容
+            extension_file_name: 带扩展名的视频文件名
 
         Returns:
 

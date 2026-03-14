@@ -21,7 +21,7 @@
 # -*- coding: utf-8 -*-
 # @Author  : persist1@126.com
 # @Time    : 2025/9/5 19:34
-# @Desc    : Bilibili storage implementation class
+# @Desc    : Bilibili存储实现类
 import asyncio
 import csv
 import json
@@ -52,7 +52,7 @@ class BiliCsvStoreImplement(AbstractStore):
 
     async def store_content(self, content_item: Dict):
         """
-        content CSV storage implementation
+        内容CSV存储实现
         Args:
             content_item:
 
@@ -66,7 +66,7 @@ class BiliCsvStoreImplement(AbstractStore):
 
     async def store_comment(self, comment_item: Dict):
         """
-        comment CSV storage implementation
+        评论CSV存储实现
         Args:
             comment_item:
 
@@ -80,7 +80,7 @@ class BiliCsvStoreImplement(AbstractStore):
 
     async def store_creator(self, creator: Dict):
         """
-        creator CSV storage implementation
+        创作者CSV存储实现
         Args:
             creator:
 
@@ -94,9 +94,9 @@ class BiliCsvStoreImplement(AbstractStore):
 
     async def store_contact(self, contact_item: Dict):
         """
-        creator contact CSV storage implementation
+        创作者联系人CSV存储实现
         Args:
-            contact_item: creator's contact item dict
+            contact_item: 创作者的联系人项字典
 
         Returns:
 
@@ -108,9 +108,9 @@ class BiliCsvStoreImplement(AbstractStore):
 
     async def store_dynamic(self, dynamic_item: Dict):
         """
-        creator dynamic CSV storage implementation
+        创作者动态CSV存储实现
         Args:
-            dynamic_item: creator's contact item dict
+            dynamic_item: 创作者的动态项字典
 
         Returns:
 
@@ -124,9 +124,9 @@ class BiliCsvStoreImplement(AbstractStore):
 class BiliDbStoreImplement(AbstractStore):
     async def store_content(self, content_item: Dict):
         """
-        Bilibili content DB storage implementation
+        Bilibili内容数据库存储实现
         Args:
-            content_item: content item dict
+            content_item: 内容项字典
         """
         video_id = int(content_item.get("video_id"))
         content_item["video_id"] = video_id
@@ -151,9 +151,9 @@ class BiliDbStoreImplement(AbstractStore):
 
     async def store_comment(self, comment_item: Dict):
         """
-        Bilibili comment DB storage implementation
+        Bilibili评论数据库存储实现
         Args:
-            comment_item: comment item dict
+            comment_item: 评论项字典
         """
         comment_id = int(comment_item.get("comment_id"))
         comment_item["comment_id"] = comment_id
@@ -180,9 +180,9 @@ class BiliDbStoreImplement(AbstractStore):
 
     async def store_creator(self, creator: Dict):
         """
-        Bilibili creator DB storage implementation
+        Bilibili创作者数据库存储实现
         Args:
-            creator: creator item dict
+            creator: 创作者项字典
         """
         creator_id = int(creator.get("user_id"))
         creator["user_id"] = creator_id
@@ -208,9 +208,9 @@ class BiliDbStoreImplement(AbstractStore):
 
     async def store_contact(self, contact_item: Dict):
         """
-        Bilibili contact DB storage implementation
+        Bilibili联系人数据库存储实现
         Args:
-            contact_item: contact item dict
+            contact_item: 联系人项字典
         """
         up_id = int(contact_item.get("up_id"))
         fan_id = int(contact_item.get("fan_id"))
@@ -236,9 +236,9 @@ class BiliDbStoreImplement(AbstractStore):
 
     async def store_dynamic(self, dynamic_item):
         """
-        Bilibili dynamic DB storage implementation
+        Bilibili动态数据库存储实现
         Args:
-            dynamic_item: dynamic item dict
+            dynamic_item: 动态项字典
         """
         dynamic_id = int(dynamic_item.get("dynamic_id"))
         dynamic_item["dynamic_id"] = dynamic_id
@@ -268,7 +268,7 @@ class BiliJsonStoreImplement(AbstractStore):
 
     async def store_content(self, content_item: Dict):
         """
-        content JSON storage implementation
+        内容JSON存储实现
         Args:
             content_item:
 
@@ -282,7 +282,7 @@ class BiliJsonStoreImplement(AbstractStore):
 
     async def store_comment(self, comment_item: Dict):
         """
-        comment JSON storage implementation
+        评论JSON存储实现
         Args:
             comment_item:
 
@@ -296,7 +296,7 @@ class BiliJsonStoreImplement(AbstractStore):
 
     async def store_creator(self, creator: Dict):
         """
-        creator JSON storage implementation
+        创作者JSON存储实现
         Args:
             creator:
 
@@ -310,9 +310,9 @@ class BiliJsonStoreImplement(AbstractStore):
 
     async def store_contact(self, contact_item: Dict):
         """
-        creator contact JSON storage implementation
+        创作者联系人JSON存储实现
         Args:
-            contact_item: creator's contact item dict
+            contact_item: 创作者的联系人项字典
 
         Returns:
 
@@ -324,9 +324,9 @@ class BiliJsonStoreImplement(AbstractStore):
 
     async def store_dynamic(self, dynamic_item: Dict):
         """
-        creator dynamic JSON storage implementation
+        创作者动态JSON存储实现
         Args:
-            dynamic_item: creator's contact item dict
+            dynamic_item: 创作者的联系人项字典
 
         Returns:
 
@@ -381,16 +381,16 @@ class BiliSqliteStoreImplement(BiliDbStoreImplement):
 
 
 class BiliMongoStoreImplement(AbstractStore):
-    """Bilibili MongoDB storage implementation"""
+    """Bilibili MongoDB存储实现"""
 
     def __init__(self):
         self.mongo_store = MongoDBStoreBase(collection_prefix="bilibili")
 
     async def store_content(self, content_item: Dict):
         """
-        Store video content to MongoDB
+        将视频内容存储到MongoDB
         Args:
-            content_item: Video content data
+            content_item: 视频内容数据
         """
         video_id = content_item.get("video_id")
         if not video_id:
@@ -401,13 +401,13 @@ class BiliMongoStoreImplement(AbstractStore):
             query={"video_id": video_id},
             data=content_item
         )
-        utils.logger.info(f"[BiliMongoStoreImplement.store_content] Saved video {video_id} to MongoDB")
+        utils.logger.info(f"[BiliMongoStoreImplement.store_content] 已保存视频 {video_id} 到MongoDB")
 
     async def store_comment(self, comment_item: Dict):
         """
-        Store comment to MongoDB
+        将评论存储到MongoDB
         Args:
-            comment_item: Comment data
+            comment_item: 评论数据
         """
         comment_id = comment_item.get("comment_id")
         if not comment_id:
@@ -418,13 +418,13 @@ class BiliMongoStoreImplement(AbstractStore):
             query={"comment_id": comment_id},
             data=comment_item
         )
-        utils.logger.info(f"[BiliMongoStoreImplement.store_comment] Saved comment {comment_id} to MongoDB")
+        utils.logger.info(f"[BiliMongoStoreImplement.store_comment] 已保存评论 {comment_id} 到MongoDB")
 
     async def store_creator(self, creator_item: Dict):
         """
-        Store UP master information to MongoDB
+        将UP主信息存储到MongoDB
         Args:
-            creator_item: UP master data
+            creator_item: UP主数据
         """
         user_id = creator_item.get("user_id")
         if not user_id:
@@ -439,7 +439,7 @@ class BiliMongoStoreImplement(AbstractStore):
 
 
 class BiliExcelStoreImplement:
-    """Bilibili Excel storage implementation - Global singleton"""
+    """Bilibili Excel存储实现 - 全局单例"""
 
     def __new__(cls, *args, **kwargs):
         from store.excel_store_base import ExcelStoreBase

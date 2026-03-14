@@ -36,7 +36,7 @@ class DouYinImage(AbstractStoreImage):
 
     async def store_image(self, image_content_item: Dict):
         """
-        store content
+        存储内容
 
         Args:
             image_content_item:
@@ -48,11 +48,11 @@ class DouYinImage(AbstractStoreImage):
 
     def make_save_file_name(self, aweme_id: str, extension_file_name: str) -> str:
         """
-        make save file name by store type
+        根据存储类型生成保存文件名
 
         Args:
-            aweme_id: aweme id
-            extension_file_name: image filename with extension
+            aweme_id: 作品id
+            extension_file_name: 带扩展名的图片文件名
 
         Returns:
 
@@ -61,12 +61,12 @@ class DouYinImage(AbstractStoreImage):
 
     async def save_image(self, aweme_id: str, pic_content: str, extension_file_name):
         """
-        save image to local
+        保存图片到本地
 
         Args:
-            aweme_id: aweme id
-            pic_content: image content
-            extension_file_name: image filename with extension
+            aweme_id: 作品id
+            pic_content: 图片内容
+            extension_file_name: 带扩展名的图片文件名
 
         Returns:
 
@@ -87,7 +87,7 @@ class DouYinVideo(AbstractStoreVideo):
 
     async def store_video(self, video_content_item: Dict):
         """
-        store content
+        存储内容
 
         Args:
             video_content_item:
@@ -99,11 +99,11 @@ class DouYinVideo(AbstractStoreVideo):
 
     def make_save_file_name(self, aweme_id: str, extension_file_name: str) -> str:
         """
-        make save file name by store type
+        根据存储类型生成保存文件名
 
         Args:
-            aweme_id: aweme id
-            extension_file_name: video filename with extension
+            aweme_id: 作品id
+            extension_file_name: 带扩展名的视频文件名
 
         Returns:
 
@@ -112,12 +112,12 @@ class DouYinVideo(AbstractStoreVideo):
 
     async def save_video(self, aweme_id: str, video_content: str, extension_file_name):
         """
-        save video to local
+        保存视频到本地
 
         Args:
-            aweme_id: aweme id
-            video_content: video content
-            extension_file_name: video filename with extension
+            aweme_id: 作品id
+            video_content: 视频内容
+            extension_file_name: 带扩展名的视频文件名
 
         Returns:
 
