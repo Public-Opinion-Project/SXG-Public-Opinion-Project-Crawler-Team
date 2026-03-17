@@ -48,6 +48,8 @@ from var import crawler_type_var
 
 
 class CrawlerFactory:
+    """爬虫工厂类，用于根据平台名称创建对应的爬虫实例"""
+
     CRAWLERS: dict[str, Type[AbstractCrawler]] = {
         "xhs": XiaoHongShuCrawler,
         "dy": DouYinCrawler,
@@ -60,6 +62,18 @@ class CrawlerFactory:
 
     @staticmethod
     def create_crawler(platform: str) -> AbstractCrawler:
+        """
+        根据平台名称创建爬虫实例
+
+        参数:
+            platform: 媒体平台标识符 (如 "xhs", "dy", "bili" 等)
+
+        返回:
+            AbstractCrawler: 对应平台的爬虫实例
+
+        异常:
+            ValueError: 当平台不支持时抛出
+        """
         crawler_class = CrawlerFactory.CRAWLERS.get(platform)
         if not crawler_class:
             supported = ", ".join(sorted(CrawlerFactory.CRAWLERS))
@@ -71,6 +85,11 @@ crawler: Optional[AbstractCrawler] = None
 
 
 def _flush_excel_if_needed() -> None:
+    """
+    如果保存模式为 Excel，则刷新并保存所有 Excel 文件
+
+    当配置的数据存储选项为 "excel" 时，调用此函数将内存中的数据写入 Excel 文件
+    """
     if config.SAVE_DATA_OPTION != "excel":
         return
 
@@ -84,6 +103,11 @@ def _flush_excel_if_needed() -> None:
 
 
 async def _generate_wordcloud_if_needed() -> None:
+    """
+    如果满足条件，则生成评论词云图
+
+    当保存模式为 JSON 或 JSONL 且启用了词云生成功能时，调用此函数从评论数据生成词云图
+    """
     if config.SAVE_DATA_OPTION not in ("json", "jsonl") or not config.ENABLE_GET_WORDCLOUD:
         return
 
@@ -98,6 +122,17 @@ async def _generate_wordcloud_if_needed() -> None:
 
 
 async def main() -> None:
+    """
+    主函数，负责初始化爬虫并启动数据爬取
+
+    该函数执行以下步骤：
+    1. 解析命令行参数
+    2. 如果指定了 init_db 参数，则初始化数据库
+    3. 根据配置的平台创建对应的爬虫实例
+    4. 启动爬虫开始爬取数据
+    5. 如果保存模式为 Excel，则刷新数据到文件
+    6. 如果满足条件，生成词云图
+    """
     global crawler
 
     args = await cmd_arg.parse_cmd()
@@ -111,12 +146,20 @@ async def main() -> None:
 
     _flush_excel_if_needed()
 
-    # Generate wordcloud after crawling is complete
-    # Only for JSON save mode
+    # 爬取完成后生成词云图
+    # 仅适用于 JSON 保存模式
     await _generate_wordcloud_if_needed()
 
 
 async def async_cleanup() -> None:
+    """
+    异步清理函数，负责在程序结束时清理资源
+
+    该函数执行以下清理操作：
+    1. 如果爬虫存在 CDP 管理器，则清理 CDP 浏览器
+    2. 如果爬虫存在浏览器上下文，则关闭浏览器上下文
+    3. 如果保存模式为数据库或 SQLite，则关闭数据库连接
+    """
     global crawler
     if crawler:
         if getattr(crawler, "cdp_manager", None):
@@ -142,6 +185,11 @@ if __name__ == "__main__":
     from tools.app_runner import run
 
     def _force_stop() -> None:
+        """
+        强制停止函数，用于在中断信号发生时强制清理爬虫资源
+
+        该函数尝试清理 CDP 浏览器的启动器，确保程序能够干净地退出
+        """
         c = crawler
         if not c:
             return
