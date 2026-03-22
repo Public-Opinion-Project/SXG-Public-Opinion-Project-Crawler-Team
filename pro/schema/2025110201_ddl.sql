@@ -1,0 +1,1 @@
+alter table kuaishou_video_comment add column `parent_comment_id` varchar(64) DEFAULT NULL COMMENT '父评论ID';

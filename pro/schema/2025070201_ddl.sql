@@ -1,0 +1,1 @@
+alter table douyin_aweme add column `is_ai_generated` tinyint(1) NOT NULL DEFAULT '0' COMMENT '作者是否声明视频为AI生成';
